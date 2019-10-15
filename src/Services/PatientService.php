@@ -214,17 +214,18 @@ class PatientService
                    street, 
                    postal_code, 
                    city, 
+                   date,
                    state, 
                    country_code, 
                    phone_contact,
-                   email
+                   email,
                    dob,
                    sex,
                    race,
                    ethnicity
                 FROM patient_data";
 
-        if ($search['name'] || $search['fname'] || $search['lname'] || $search['dob']) {
+        if ($search['name'] || $search['fname'] || $search['lname'] || $search['dob'] || $search['date']) {
             $sql .= " WHERE ";
 
             $whereClauses = array();
@@ -245,6 +246,11 @@ class PatientService
                 $search['dob'] = !empty($search['dob']) ? $search['dob'] : $search['birthdate'];
                 array_push($whereClauses, "dob=?");
                 array_push($sqlBindArray, $search['dob']);
+            }
+
+            if ($search['date']) {
+                array_push($whereClauses, "`date` >= from_unixtime(?) - interval 60 second");
+                array_push($sqlBindArray, $search['date']);
             }
 
             $sql .= implode(" AND ", $whereClauses);
