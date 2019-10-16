@@ -249,7 +249,7 @@ class PatientService
             }
 
             if ($search['date']) {
-                array_push($whereClauses, "`date` >= from_unixtime(?) - interval 60 second");
+                array_push($whereClauses, "`date` >= from_unixtime(?) - interval 64 second");
                 array_push($sqlBindArray, $search['date']);
             }
 
