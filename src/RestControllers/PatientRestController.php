@@ -60,7 +60,8 @@ class PatientRestController
         $serviceResult = $this->patientService->getAll(array(
             'fname' => $search['fname'],
             'lname' => $search['lname'],
-            'dob' => $search['dob']
+            'dob' => $search['dob'],
+            'date' => $search['date']
         ));
 
         return RestControllerHelper::responseHandler($serviceResult, null, 200);
