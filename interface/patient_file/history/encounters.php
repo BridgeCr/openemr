@@ -16,12 +16,12 @@ require_once("../../globals.php");
 require_once("$srcdir/forms.inc");
 require_once("$srcdir/patient.inc");
 require_once("$srcdir/lists.inc");
-require_once("$srcdir/acl.inc");
 require_once("../../../custom/code_types.inc.php");
 if ($GLOBALS['enable_group_therapy']) {
     require_once("$srcdir/group.inc");
 }
 
+use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Billing\BillingUtilities;
 use OpenEMR\Billing\InvoiceSummary;
 use OpenEMR\Common\Csrf\CsrfUtils;
@@ -42,17 +42,17 @@ $issue = empty($_GET['issue']) ? 0 : 0 + $_GET['issue'];
  $default_encounter = $GLOBALS['default_encounter_view']; //'0'=clinical, '1' = billing
 
  // Get relevant ACL info.
- $auth_notes_a  = acl_check('encounters', 'notes_a');
- $auth_notes    = acl_check('encounters', 'notes');
- $auth_coding_a = acl_check('encounters', 'coding_a');
- $auth_coding   = acl_check('encounters', 'coding');
- $auth_relaxed  = acl_check('encounters', 'relaxed');
- $auth_med      = acl_check('patients', 'med');
- $auth_demo     = acl_check('patients', 'demo');
- $glog_view_write = acl_check("groups", "glog", false, array('view','write'));
+ $auth_notes_a  = AclMain::aclCheckCore('encounters', 'notes_a');
+ $auth_notes    = AclMain::aclCheckCore('encounters', 'notes');
+ $auth_coding_a = AclMain::aclCheckCore('encounters', 'coding_a');
+ $auth_coding   = AclMain::aclCheckCore('encounters', 'coding');
+ $auth_relaxed  = AclMain::aclCheckCore('encounters', 'relaxed');
+ $auth_med      = AclMain::aclCheckCore('patients', 'med');
+ $auth_demo     = AclMain::aclCheckCore('patients', 'demo');
+ $glog_view_write = AclMain::aclCheckCore("groups", "glog", false, array('view','write'));
 
  $tmp = getPatientData($pid, "squad");
-if ($tmp['squad'] && ! acl_check('squads', $tmp['squad'])) {
+if ($tmp['squad'] && ! AclMain::aclCheckCore('squads', $tmp['squad'])) {
     $auth_notes_a = $auth_notes = $auth_coding_a = $auth_coding = $auth_med = $auth_demo = $auth_relaxed = 0;
 }
 
@@ -173,7 +173,7 @@ function generatePageElement($start, $pagesize, $billing, $issue, $text)
 
 <script type="text/javascript" src="<?php echo $GLOBALS['webroot'] ?>/library/js/ajtooltip.js"></script>
 
-<script language="JavaScript">
+<script>
 // open dialog to edit an invoice w/o opening encounter.
 function editInvoice(e, id) {
     e.stopPropagation();
@@ -248,7 +248,7 @@ function efmouseover(elem, ptid, encid, formname, formid) {
 <body class="body_bottom">
 <div id="encounters"> <!-- large outer DIV -->
 
-<font class='title'>
+<span class='title'>
 <?php
 if ($issue) {
     echo xlt('Past Encounters for') . ' ';
@@ -259,7 +259,7 @@ if ($issue) {
     echo $attendant_type == 'pid' ? xlt('Past Encounters and Documents') : xlt('Past Therapy Group Encounters');
 }
 ?>
-</font>
+</span>
 &nbsp;&nbsp;
 <?php
 // Setup the GET string to append when switching between billing and clinical views.
@@ -291,20 +291,20 @@ $getStringForPage="&pagesize=" . attr_url($pagesize) . "&pagestart=" . attr_url(
 
 ?>
 <?php if ($billing_view) { ?>
-<a href='encounters.php?billing=0&issue=<?php echo $issue.$getStringForPage; ?>' onclick='top.restoreSession()' style='font-size:8pt'>(<?php echo xlt('To Clinical View'); ?>)</a>
+<a href='encounters.php?billing=0&issue=<?php echo $issue.$getStringForPage; ?>' onclick='top.restoreSession()' style='font-size: 11px'>(<?php echo xlt('To Clinical View'); ?>)</a>
 <?php } else { ?>
-<a href='encounters.php?billing=1&issue=<?php echo $issue.$getStringForPage; ?>' onclick='top.restoreSession()' style='font-size:8pt'>(<?php echo xlt('To Billing View'); ?>)</a>
+<a href='encounters.php?billing=1&issue=<?php echo $issue.$getStringForPage; ?>' onclick='top.restoreSession()' style='font-size: 11px'>(<?php echo xlt('To Billing View'); ?>)</a>
 <?php } ?>
 
-<span style="float:right">
+<span class="float-right">
     <?php echo xlt('Results per page'); ?>:
-    <select id="selPagesize" billing="<?php echo attr($billing_view); ?>" issue="<?php echo attr($issue); ?>" pagestart="<?php echo attr($pagestart); ?>" >
+    <select class="form-control" id="selPagesize" billing="<?php echo attr($billing_view); ?>" issue="<?php echo attr($issue); ?>" pagestart="<?php echo attr($pagestart); ?>" >
 <?php
-    $pagesizes=array(5,10,15,20,25,50,0);
-for ($idx=0; $idx<count($pagesizes); $idx++) {
-    echo "<OPTION value='" . attr($pagesizes[$idx]) . "'";
+    $pagesizes = array(5,10,15,20,25,50,0);
+for ($idx = 0; $idx < count($pagesizes); $idx++) {
+    echo "<option value='" . attr($pagesizes[$idx]) . "'";
     if ($pagesize==$pagesizes[$idx]) {
-        echo " SELECTED='true'>";
+        echo " selected='true'>";
     } else {
         echo ">";
     }
@@ -319,46 +319,59 @@ for ($idx=0; $idx<count($pagesizes); $idx++) {
     </select>
 </span>
 
-<br>
+<br />
 
-<table>
+<table class="table">
+<thead>
  <tr class='text'>
-  <th><?php echo xlt('Date'); ?></th>
+  <th scope="col"><?php echo xlt('Date'); ?></th>
 
 <?php if ($billing_view) { ?>
-  <th class='billing_note'><?php echo xlt('Billing Note'); ?></th>
+  <th class='billing_note' scope="col"><?php echo xlt('Billing Note'); ?></th>
 <?php } else { ?>
     <?php if ($attendant_type == 'pid' && !$issue) { // only for patient encounter and if listing for multiple issues?>
-  <th><?php echo xlt('Issue'); ?></th>
+  <th scope="col"><?php echo xlt('Issue'); ?></th>
 <?php } ?>
-  <th><?php echo xlt('Reason/Form'); ?></th>
+  <th scope="col"><?php echo xlt('Reason/Form'); ?></th>
     <?php if ($attendant_type == 'pid') { ?>
-  <th><?php echo xlt('Provider');    ?></th>
+  <th scope="col"><?php echo xlt('Provider');    ?></th>
     <?php } else { ?>
-        <th><?php echo xlt('Counselors');    ?></th>
+        <th scope="col"><?php echo xlt('Counselors');    ?></th>
     <?php } ?>
 <?php } ?>
 
 <?php if ($billing_view) { ?>
-  <th><?php echo xlt('Code'); ?></th>
-  <th class='right'><?php echo xlt('Chg'); ?></th>
-  <th class='right'><?php echo xlt('Paid'); ?></th>
-  <th class='right'><?php echo xlt('Adj'); ?></th>
-  <th class='right'><?php echo xlt('Bal'); ?></th>
+  <th scope="col"><?php echo xlt('Code'); ?></th>
+  <th class='text-right' scope="col"><?php echo xlt('Chg'); ?></th>
+  <th class='text-right' scope="col"><?php echo xlt('Paid'); ?></th>
+  <th class='text-right' scope="col"><?php echo xlt('Adj'); ?></th>
+  <th class='text-right' scope="col"><?php echo xlt('Bal'); ?></th>
 <?php } elseif ($attendant_type == 'pid') { ?>
-  <th colspan='5'><?php echo ($GLOBALS['phone_country_code'] == '1') ? xlt('Billing') : xlt('Coding'); ?></th>
+  <th colspan='5' scope="col"><?php echo ($GLOBALS['phone_country_code'] == '1') ? xlt('Billing') : xlt('Coding'); ?></th>
 <?php } ?>
 
 <?php if ($attendant_type == 'pid' && !$GLOBALS['ippf_specific']) { ?>
-  <th>&nbsp;<?php echo ($GLOBALS['weight_loss_clinic']) ? xlt('Payment') : xlt('Insurance'); ?></th>
+  <th scope="col">&nbsp;<?php echo ($GLOBALS['weight_loss_clinic']) ? xlt('Payment') : xlt('Insurance'); ?></th>
 <?php } ?>
 
 <?php if ($GLOBALS['enable_group_therapy'] && !$billing_view && $therapy_group == 0) { ?>
-    <!-- Two new columns if therapy group is enable only in patient  encounter - encounter type and group name (empty if isn't group type) -->
-    <th><?php echo xlt('Encounter type'); ?></th>
-    <th><?php echo xlt('Group name'); ?></th>
+    <th scope="col"><?php echo xlt('Encounter type'); ?></th>
 <?php }?>
+
+<?php if ($GLOBALS['enable_follow_up_encounters']) { ?>
+    <th scope="col"></th>
+<?php }?>
+
+<?php if ($GLOBALS['enable_group_therapy'] && !$billing_view && $therapy_group == 0) { ?>
+    <th scope="col"><?php echo xlt('Group name'); ?></th>
+<?php }?>
+
+<?php if ($GLOBALS['enable_follow_up_encounters']) { ?>
+    <th scope="col"></th>
+<?php }?>
+
  </tr>
+</thead>
 
 <?php
 $drow = false;
@@ -446,24 +459,24 @@ while ($result4 = sqlFetchArray($res4)) {
         $encounter_date = date("D F jS", strtotime($result4["date"]));
 
         //fetch acl for given pc_catid
-        $postCalendarCategoryACO = fetchPostCalendarCategoryACO($result4['pc_catid']);
+        $postCalendarCategoryACO = AclMain::fetchPostCalendarCategoryACO($result4['pc_catid']);
     if ($postCalendarCategoryACO) {
         $postCalendarCategoryACO = explode('|', $postCalendarCategoryACO);
-        $authPostCalendarCategory = acl_check($postCalendarCategoryACO[0], $postCalendarCategoryACO[1]);
+        $authPostCalendarCategory = AclMain::aclCheckCore($postCalendarCategoryACO[0], $postCalendarCategoryACO[1]);
     } else { // if no aco is set for category
         $authPostCalendarCategory = true;
     }
 
         // if ($auth_notes_a || ($auth_notes && $result4['user'] == $_SESSION['authUser']))
     if (!empty($result4["reason"])) {
-        $reason_string .= text($result4["reason"]) . "<br>\n";
+        $reason_string .= text($result4["reason"]) . "<br />\n";
     }
 
         // else
         //   $reason_string = "(No access)";
 
     if ($result4['sensitivity']) {
-        $auth_sensitivity = acl_check('sensitivities', $result4['sensitivity']);
+        $auth_sensitivity = AclMain::aclCheckCore('sensitivities', $result4['sensitivity']);
         if (!$auth_sensitivity || !$authPostCalendarCategory) {
             $reason_string = "(" . xlt("No access") . ")";
         }
@@ -520,7 +533,7 @@ while ($result4 = sqlFetchArray($res4)) {
                                     "ORDER BY lists.type, lists.begdate", array($pid,$result4['encounter']));
                 for ($i = 0; $irow = sqlFetchArray($ires); ++$i) {
                     if ($i > 0) {
-                        echo "<br>";
+                        echo "<br />";
                     }
                     $tcode = $irow['type'];
                     if ($ISSUE_TYPES[$tcode]) {
@@ -540,7 +553,7 @@ while ($result4 = sqlFetchArray($res4)) {
         //Display the documents tagged to this encounter
         getDocListByEncID($result4['encounter'], $raw_encounter_date, $pid);
 
-        echo "<div style='padding-left:10px;'>";
+        echo "<div style='padding-left: 10px;'>";
 
         // Now show a line for each encounter form, if the user is authorized to
         // see this encounter's notes.
@@ -572,8 +585,8 @@ while ($result4 = sqlFetchArray($res4)) {
             $formdir = $enc['formdir'];
             if ($issue) {
                 echo text(xl_form_title($enc['form_name']));
-                echo "<br>";
-                echo "<div class='encreport' style='padding-left:10px;'>";
+                echo "<br />";
+                echo "<div class='encreport' style='padding-left: 10px;'>";
           // Use the form's report.php for display.  Forms with names starting with LBF
           // are list-based forms sharing a single collection of code.
                 if (substr($formdir, 0, 3) == 'LBF') {
@@ -688,7 +701,7 @@ while ($result4 = sqlFetchArray($res4)) {
                 $codekeydisp = $codekeydisp;
 
                 if ($binfo[0]) {
-                    $binfo[0] .= '<br>';
+                    $binfo[0] .= '<br />';
                 }
                 if ($issue && !$billing_view) {
                   // Single issue clinical view: show code description after the code.
@@ -700,7 +713,7 @@ while ($result4 = sqlFetchArray($res4)) {
                 if ($billing_view) {
                     if ($binfo[1]) {
                         for ($i = 1; $i < 5; ++$i) {
-                            $binfo[$i] .= '<br>';
+                            $binfo[$i] .= '<br />';
                         }
                     }
                     if (empty($arinvoice[$codekey])) {
@@ -730,7 +743,7 @@ while ($result4 = sqlFetchArray($res4)) {
                 foreach ($arinvoice as $codekey => $val) {
                     if ($binfo[0]) {
                         for ($i = 0; $i < 5; ++$i) {
-                            $binfo[$i] .= '<br>';
+                            $binfo[$i] .= '<br />';
                         }
                     }
                     for ($i = 0; $i < 5; ++$i) {
@@ -766,25 +779,25 @@ while ($result4 = sqlFetchArray($res4)) {
             }
             $subresult5 = getInsuranceDataByDate($pid, $raw_encounter_date, "primary");
             if ($subresult5 && $subresult5["provider_name"]) {
-                $style = $responsible == 1 ? " style='color:red'" : "";
+                $style = $responsible == 1 ? " style='color: var(--danger)'" : "";
                 $insured = "<span class='text'$style>&nbsp;" . xlt('Primary') . ": " .
-                text($subresult5["provider_name"]) . "</span><br>\n";
+                text($subresult5["provider_name"]) . "</span><br />\n";
             }
             $subresult6 = getInsuranceDataByDate($pid, $raw_encounter_date, "secondary");
             if ($subresult6 && $subresult6["provider_name"]) {
-                $style = $responsible == 2 ? " style='color:red'" : "";
+                $style = $responsible == 2 ? " style='color: var(--danger)'" : "";
                 $insured .= "<span class='text'$style>&nbsp;" . xlt('Secondary') . ": " .
-                text($subresult6["provider_name"]) . "</span><br>\n";
+                text($subresult6["provider_name"]) . "</span><br />\n";
             }
             $subresult7 = getInsuranceDataByDate($pid, $raw_encounter_date, "tertiary");
             if ($subresult6 && $subresult7["provider_name"]) {
-                $style = $responsible == 3 ? " style='color:red'" : "";
+                $style = $responsible == 3 ? " style='color: var(--danger)'" : "";
                 $insured .= "<span class='text'$style>&nbsp;" . xlt('Tertiary') . ": " .
-                text($subresult7["provider_name"]) . "</span><br>\n";
+                text($subresult7["provider_name"]) . "</span><br />\n";
             }
             if ($responsible == 0) {
-                $insured .= "<span class='text' style='color:red'>&nbsp;" . xlt('Patient') .
-                            "</span><br>\n";
+                $insured .= "<span class='text' style='color: var(--danger)'>&nbsp;" . xlt('Patient') .
+                            "</span><br />\n";
             }
         } else {
             $insured = " (" . xlt("No access") . ")";
@@ -796,8 +809,23 @@ while ($result4 = sqlFetchArray($res4)) {
     if ($GLOBALS['enable_group_therapy'] && !$billing_view && $therapy_group == 0) {
         $encounter_type = sqlQuery("SELECT pc_catname, pc_cattype FROM openemr_postcalendar_categories where pc_catid = ?", array($result4['pc_catid']));
         echo "<td>" . xlt($encounter_type['pc_catname']) . "</td>\n";
+    }
+
+    if ($GLOBALS['enable_follow_up_encounters']) {
+        $symbol= ( !empty($result4['parent_encounter_id']) ) ? '<span class="fa fa-fw fa-undo" style="padding: 5px;"></span>' : null;
+
+        echo "<td> ".$symbol." </td>\n";
+    }
+
+    if ($GLOBALS['enable_group_therapy'] && !$billing_view && $therapy_group == 0) {
         $group_name = ($encounter_type['pc_cattype'] == 3 && is_numeric($result4['external_id'])) ? getGroup($result4['external_id'])['group_name']  : "";
         echo "<td>". text($group_name) . "</td>\n";
+    }
+
+
+    if ($GLOBALS['enable_follow_up_encounters']) {
+        $encounterId= ( !empty($result4['parent_encounter_id']) ) ? $result4['parent_encounter_id'] : $result4['id'];
+        echo "<td> <div style='z-index: 9999'>  <a href='#' class='btn btn-primary' onclick='createFollowUpEncounter(event,".attr_js($encounterId).")'><span>".xlt('Create follow-up encounter')."</span></a> </div></td>\n";
     }
 
         echo "</tr>\n";
@@ -815,14 +843,15 @@ while ($drow /* && $count <= $N */) {
 
 </div> <!-- end 'encounters' large outer DIV -->
 
-<div id='tooltipdiv'
- style='position:absolute;width:400pt;border:1px solid black;padding:2px;background-color:#ffffaa;visibility:hidden;z-index:1000;font-size:9pt;'
-></div>
-
-</body>
-
-<script language="javascript">
+<div id='tooltipdiv' style='position:absolute; width: 533px; border:1px solid var(--black); padding:2px; background-color: #ffffaa; visibility: hidden; z-index: 1000; font-size: 12px;'></div>
+    
+<script>
 // jQuery stuff to make the page a little easier to use
+function createFollowUpEncounter(event,encId){
+    event.stopPropagation();
+    var data={encounterId:encId,mode:'follow_up_encounter'};
+    top.window.parent.newEncounter(data);
+}
 
 $(function() {
     $(".encrow").on("mouseover", function() { $(this).toggleClass("highlight"); });
@@ -839,5 +868,5 @@ $(function() {
 });
 
 </script>
-
+</body>
 </html>

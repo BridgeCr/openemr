@@ -12,9 +12,8 @@
  */
 
 
-require_once("../../globals.php");
+require_once(__DIR__ . "/../../globals.php");
 require_once("$srcdir/api.inc");
-require_once("$srcdir/acl.inc");
 require_once("$srcdir/forms.inc");
 require_once("$srcdir/lists.inc");
 require_once("$srcdir/options.inc.php");
@@ -445,7 +444,7 @@ if ($_REQUEST['dispensed']) {
                 ?>
                     <div id="RXID_<?php echo attr($row['id']); ?>"
                          style="position:relative;text-align:center;margin: 10 auto;">
-                        <i class="pull-right fa fa-close"
+                        <i class="float-right fa fa-close"
                            onclick="delete_me('<?php echo attr(addslashes($row['id'])); ?>');"
                            title="<?php echo xla('Remove this Prescription from the list of RXs dispensed'); ?>"></i>
                         <table style="margin:2px auto;width:490px;">
@@ -916,7 +915,7 @@ if ($REFTYPE == "CTL") {
     <input type="hidden" name="REFTYPE" value="<?php echo attr($REFTYPE); ?>"/>
     <input type="hidden" name="pid" id="pid" value="<?php echo attr($pid); ?>">
     <input type="hidden" name="id" id="id" value="<?php echo attr($insert_this_id); ?>">
-    <input type="hidden" name="encounter" id="encounter" value="<?php echo $encounter; ?>">
+    <input type="hidden" name="encounter" id="encounter" value="<?php echo attr($encounter); ?>">
 
     <div style="width: 650px;">
 

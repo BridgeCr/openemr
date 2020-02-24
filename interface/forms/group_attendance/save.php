@@ -12,11 +12,13 @@
  */
 
 
-require_once("../../globals.php");
+require_once(__DIR__ . "/../../globals.php");
 require_once("functions.php");
 
+use OpenEMR\Common\Acl\AclMain;
+
 // Save only if has permission to edit
-$can_edit = acl_check("groups", "gadd", false, 'write');
+$can_edit = AclMain::aclCheckCore("groups", "gadd", false, 'write');
 if (!$can_edit) {
     formJump();
 }

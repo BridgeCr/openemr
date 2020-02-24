@@ -5,7 +5,7 @@
  * @package   OpenEMR
  * @link      http://www.open-emr.org
  * @author    Brady Miller <brady.g.miller@gmail.com>
- * @copyright Copyright (c) 2018 Brady Miller <brady.g.miller@gmail.com>
+ * @copyright Copyright (c) 2018-2019 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
@@ -16,6 +16,7 @@ require_once("$srcdir/immunization_helper.php");
 
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Logging\EventAuditLogger;
+use OpenEMR\Core\Header;
 
 if (isset($_GET['mode'])) {
     if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
@@ -66,8 +67,8 @@ if (isset($_GET['mode'])) {
             trim($_GET['vis_date']), trim($_GET['vis_date']),
             trim($_GET['note']),
             $pid,
-            $_SESSION['authId'],
-            $_SESSION['authId'],
+            $_SESSION['authUserID'],
+            $_SESSION['authUserID'],
             trim($_GET['immuniz_amt_adminstrd']),
             trim($_GET['form_drug_units']),
             trim($_GET['immuniz_exp_date']), trim($_GET['immuniz_exp_date']),
@@ -187,7 +188,7 @@ if (!$administered_by && !$administered_by_id) {
     $stmt = "select CONCAT(IFNULL(lname,''), ' ,',IFNULL(fname,'')) as full_name ".
             " from users where ".
             " id=?";
-    $row = sqlQuery($stmt, array($_SESSION['authId']));
+    $row = sqlQuery($stmt, array($_SESSION['authUserID']));
     $administered_by = $row['full_name'];
 }
 
@@ -312,7 +313,7 @@ function saveImmunizationObservationResults($id, $immunizationdata)
                                         )
                                         VALUES
                                           (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            $res                      = sqlQuery($sql, array($id,$_SESSION["pid"],$immunizationdata['observation_criteria'][$i],$imo_criteria_value,$_SESSION['authId'],$code, $code_text, $code_type,$vis_published_dateval,$vis_presented_dateval));
+            $res                      = sqlQuery($sql, array($id,$_SESSION["pid"],$immunizationdata['observation_criteria'][$i],$imo_criteria_value,$_SESSION['authUserID'],$code, $code_text, $code_type,$vis_published_dateval,$vis_presented_dateval));
         }
     }
 
@@ -322,17 +323,8 @@ function saveImmunizationObservationResults($id, $immunizationdata)
 <html>
 <head>
 
-<!-- supporting javascript code -->
-<script type="text/javascript" src="<?php echo $GLOBALS['webroot'] ?>/library/textformat.js?v=<?php echo $v_js_includes; ?>"></script>
-<script type="text/javascript" src="<?php echo $GLOBALS['webroot'] ?>/library/dialog.js?v=<?php echo $v_js_includes; ?>"></script>
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-1-9-1/jquery.min.js"></script>
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-ui-1-10-4/ui/jquery-ui.js"></script>
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-datetimepicker/build/jquery.datetimepicker.full.min.js"></script>
+<?php Header::setupHeader(['datetime-picker', 'jquery-ui', 'jquery-ui-base']); ?>
 
-<!-- page styles -->
-<link rel="stylesheet" href="<?php echo $css_header;?>" type="text/css">
-<link rel="stylesheet" href="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-ui-1-10-4/themes/base/jquery-ui.css" type="text/css" />
-<link rel="stylesheet" href="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-datetimepicker/build/jquery.datetimepicker.min.css">
 <style>
 .highlight {
   color: green;
@@ -354,7 +346,7 @@ tr.selected {
 <input type="hidden" name="mode" id="mode" value="add">
 <input type="hidden" name="id" id="id" value="<?php echo attr($id); ?>">
 <input type="hidden" name="pid" id="pid" value="<?php echo attr($pid); ?>">
-<br>
+<br />
       <table border=0 cellpadding=1 cellspacing=1>
         <?php
         if ($isAddedError) {
@@ -450,7 +442,7 @@ tr.selected {
                 $result = sqlStatement($sql);
                 while ($row = sqlFetchArray($result)) {
                     echo '<OPTION VALUE=' . attr($row['id']);
-                    echo (isset($administered_by_id) && $administered_by_id != "" ? $administered_by_id : $_SESSION['authId']) == $row['id'] ? ' selected>' : '>';
+                    echo (isset($administered_by_id) && $administered_by_id != "" ? $administered_by_id : $_SESSION['authUserID']) == $row['id'] ? ' selected>' : '>';
                     echo text($row['full_name']) . '</OPTION>';
                 }
                 ?>
@@ -532,7 +524,7 @@ tr.selected {
                 $result = sqlStatement($sql);
                 while ($row = sqlFetchArray($result)) {
                     echo '<OPTION VALUE=' . attr($row['id']);
-                    echo (isset($ordered_by_id) && $ordered_by_id != "" ? $ordered_by_id : $_SESSION['authId']) == $row['id'] ? ' selected>' : '>';
+                    echo (isset($ordered_by_id) && $ordered_by_id != "" ? $ordered_by_id : $_SESSION['authUserID']) == $row['id'] ? ' selected>' : '>';
                     echo text($row['full_name']) . '</OPTION>';
                 }
                 ?>
@@ -608,7 +600,7 @@ tr.selected {
                                 <td <?php echo ($value['imo_criteria'] != 'disease_with_presumed_immunity' || $id == 0) ? 'style="display: none;"' : ''; ?> class="code_serach_td" id="code_search_td_<?php echo attr(($key + 1)); ?>">
                                     <?php $key_snomed = ($key > 0) ? (($key*2) + 2) : ($key + 2);?>
                                   <label><?php echo xlt('SNOMED-CT Code'); ?></label>
-                                  <input type="text" id="sct_code_<?php echo attr($key_snomed); ?>" style="width:140px" name="sct_code[]" class="code" value="<?php echo ($id != 0 && $value['imo_criteria'] == 'disease_with_presumed_immunity') ? attr($value['imo_code']) : ''; ?>"  onclick='sel_code(this.id);'><br>
+                                  <input type="text" id="sct_code_<?php echo attr($key_snomed); ?>" style="width:140px" name="sct_code[]" class="code" value="<?php echo ($id != 0 && $value['imo_criteria'] == 'disease_with_presumed_immunity') ? attr($value['imo_code']) : ''; ?>"  onclick='sel_code(this.id);'><br />
                                   <span id="displaytext_<?php echo attr($key_snomed); ?>" style="width:210px !important;display: block;font-size:13px;color: blue;" class="displaytext"><?php  echo text($value['imo_codetext']);?></span>
                                   <input type="hidden" id="codetext_<?php echo attr($key_snomed); ?>" name="codetext[]" class="codetext" value="<?php echo attr($value['imo_codetext']); ?>">
                                   <input type="hidden"  value="SNOMED-CT" name="codetypehidden[]" id="codetypehidden<?php echo attr($key_snomed); ?>" />
@@ -666,7 +658,7 @@ tr.selected {
                         </td>
       <td <?php echo ($value['imo_criteria'] != 'disease_with_presumed_immunity' || $id == 0) ? 'style="display: none;"' : ''; ?> class="code_serach_td" id="code_search_td_1">
         <label><?php echo xlt('SNOMED-CT Code');?></label>
-        <input type="text" id="sct_code_2" style="width:140px" name="sct_code[]" class="code" value="<?php echo ($id != 0 && $value['imo_criteria'] == 'disease_with_presumed_immunity') ? attr($value['imo_code']) : ''; ?>"  onclick='sel_code(this.id);'><br>
+        <input type="text" id="sct_code_2" style="width:140px" name="sct_code[]" class="code" value="<?php echo ($id != 0 && $value['imo_criteria'] == 'disease_with_presumed_immunity') ? attr($value['imo_code']) : ''; ?>"  onclick='sel_code(this.id);'><br />
         <span id="displaytext_2" style="width:210px !important;display: block;font-size:13px;color: blue;" class="displaytext"><?php echo text($value['imo_codetext']);?></span>
         <input type="hidden" id="codetext_2" name="codetext[]" class="codetext" value="<?php echo attr($value['imo_codetext']); ?>">
                           <input type="hidden"  value="SNOMED-CT" name="codetypehidden[]" id="codetypehidden2" />
@@ -840,11 +832,11 @@ var tr_count = $('#tr_count').val();
 
 // jQuery stuff to make the page a little easier to use
 
-$(document).ready(function(){
+$(function(){
     <?php if (!($useCVX)) { ?>
-      $("#save").click(function() { SaveForm(); });
+      $("#save").on("click", function() { SaveForm(); });
     <?php } else { ?>
-      $("#save").click(function() {
+      $("#save").on("click", function() {
         if (validate_cvx()) {
           SaveForm();
         }
@@ -853,22 +845,22 @@ $(document).ready(function(){
         }
       });
     <?php } ?>
-    $("#print").click(function() { PrintForm("pdf"); });
-    $("#printHtml").click(function() { PrintForm("html"); });
-    $(".immrow").click(function() { EditImm(this); });
-    $(".error").click(function(event) { ErrorImm(this); event.stopPropagation(); });
-    $(".delete").click(function(event) { DeleteImm(this); event.stopPropagation(); });
+    $("#print").on("click", function() { PrintForm("pdf"); });
+    $("#printHtml").on("click", function() { PrintForm("html"); });
+    $(".immrow").on("click", function() { EditImm(this); });
+    $(".error").on("click", function(event) { ErrorImm(this); event.stopPropagation(); });
+    $(".delete").on("click", function(event) { DeleteImm(this); event.stopPropagation(); });
 
-    $(".immrow").mouseover(function() { $(this).toggleClass("highlight"); });
-    $(".immrow").mouseout(function() { $(this).toggleClass("highlight"); });
+    $(".immrow").on("mouseover", function() { $(this).toggleClass("highlight"); });
+    $(".immrow").on("mouseout", function() { $(this).toggleClass("highlight"); });
 
-    $("#administered_by_id").change(function() { $("#administered_by").val($("#administered_by_id :selected").text()); });
+    $("#administered_by_id").on("change", function() { $("#administered_by").val($("#administered_by_id :selected").text()); });
 
-    $("#form_immunization_id").change( function() {
+    $("#form_immunization_id").on("change", function() {
         if ( $(this).val() != "" ) {
             $("#cvx_code").val( "" );
             $("#cvx_description").text( "" );
-            $("#cvx_code").change();
+            $("#cvx_code").trigger("change");
         }
     });
 
@@ -945,7 +937,7 @@ function set_related(codetype, code, selector, codedesc) {
             if(f.name != 'cvx_vac_type_code[]'){
     $("#cvx_description").text( codedesc );
     $("#form_immunization_id").attr( "value", "" );
-    $("#form_immunization_id").change();
+    $("#form_immunization_id").trigger("change");
             }else{
                 id_arr = f.id.split('cvx_code');
                 counter = id_arr[1];
@@ -990,7 +982,7 @@ function del_related(s) {
     e.value = '';
     $("#cvx_description").text('');
     $("#form_immunization_id").attr("value", "");
-    $("#form_immunization_id").change();
+    $("#form_immunization_id").trigger("change");
 }
 
 // This invokes the find-code popup.
@@ -1036,7 +1028,7 @@ function selectCriteria(id,value)
                     $.each(thedata,function(i,item) {
                         target.append($('<option />').val(item.option_id).text(item.title));
                     });
-                    $('#observation_criteria_value_'+key+' option[value=""]').attr('selected','selected');
+                    $('#observation_criteria_value_'+key+' option[value=""]').prop('selected', true);
                 },
                 error:function(){
                   alert("ajax error");
@@ -1124,7 +1116,7 @@ function addNewRow()
               '<td id="observation_criteria_value_td_'+new_tr_count+'" class="observation_criteria_value_td" style="display: none;"><label>'+label2+'</label><select name="observation_criteria_value[]" id="observation_criteria_value_'+new_tr_count+'" style="width: 220px;"></select>'+
               '</td>'+
               '<td class="code_serach_td" id="code_search_td_'+new_tr_count+'" style="display: none;"><label>'+label3+'</label>'+
-                '<input type="text" id="sct_code_'+new_tr_count_2+'" style="width:140px" name="sct_code[]" class="code" onclick=sel_code(this.id) /><br>'+
+                '<input type="text" id="sct_code_'+new_tr_count_2+'" style="width:140px" name="sct_code[]" class="code" onclick=sel_code(this.id) /><br />'+
                 '<span id="displaytext_'+new_tr_count_2+'" style="width:210px !important;display: block;font-size:13px;color: blue;" class="displaytext"></span>'+
                 '<input type="hidden" id="codetext_'+new_tr_count_2+'" name="codetext[]" class="codetext">'+
                 '<input type="hidden"  value="SNOMED-CT" name="codetypehidden[]" id="codetypehidden'+new_tr_count_2+'" /> '+
@@ -1157,7 +1149,7 @@ function addNewRow()
             $.each(thedata,function(i,item) {
                 target.append($('<option></option>').val(item.option_id).text(item.title));
             });
-            $('#observation_criteria_'+new_tr_count+' option[value=""]').attr('selected','selected');
+            $('#observation_criteria_'+new_tr_count+' option[value=""]').prop('selected', true);
         },
         error:function(){
           alert("ajax error");

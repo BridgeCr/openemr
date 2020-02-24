@@ -11,10 +11,11 @@
 
 
 require_once("../../globals.php");
-require_once("$srcdir/acl.inc");
 
 use OpenEMR\Billing\BillingUtilities;
+use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Core\Header;
 
 $mode              = $_REQUEST['mode'];
 $type              = $_REQUEST['type'];
@@ -150,7 +151,7 @@ if (isset($mode)) {
 ?>
 <html>
 <head>
-<link rel="stylesheet" href="<?php echo $css_header;?>" type="text/css">
+<?php Header::setupHeader(); ?>
 
 <script language="JavaScript">
 
@@ -204,18 +205,18 @@ function validate(f) {
 <body class="body_bottom">
 
 <?php
- $thisauth = acl_check('encounters', 'coding_a');
+ $thisauth = AclMain::aclCheckCore('encounters', 'coding_a');
 if (!$thisauth) {
     $erow = sqlQuery("SELECT user FROM forms WHERE " .
     "encounter = ? AND formdir = 'newpatient' LIMIT 1", array($encounter));
     if ($erow['user'] == $_SESSION['authUser']) {
-        $thisauth = acl_check('encounters', 'coding');
+        $thisauth = AclMain::aclCheckCore('encounters', 'coding');
     }
 }
 
 if ($thisauth) {
     $tmp = getPatientData($pid, "squad");
-    if ($tmp['squad'] && ! acl_check('squads', $tmp['squad'])) {
+    if ($tmp['squad'] && ! AclMain::aclCheckCore('squads', $tmp['squad'])) {
         $thisauth = 0;
     }
 }

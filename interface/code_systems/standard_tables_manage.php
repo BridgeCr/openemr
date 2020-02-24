@@ -17,14 +17,15 @@
 
 
 require_once("../../interface/globals.php");
-require_once("$srcdir/acl.inc");
 require_once("$srcdir/standard_tables_capture.inc");
+
+use OpenEMR\Common\Acl\AclMain;
 
 // Ensure script doesn't time out
 set_time_limit(0);
 
 // Control access
-if (!acl_check('admin', 'super')) {
+if (!AclMain::aclCheckCore('admin', 'super')) {
     echo xlt('Not Authorized');
     exit;
 }
@@ -55,14 +56,14 @@ foreach ($files_array as $file) {
 // load the database
 if ($db == 'RXNORM') {
     if (!rxnorm_import(IS_WINDOWS)) {
-        echo htmlspecialchars(xl('ERROR: Unable to load the file into the database.'), ENT_NOQUOTES)."<br>";
+        echo htmlspecialchars(xl('ERROR: Unable to load the file into the database.'), ENT_NOQUOTES)."<br />";
         temp_dir_cleanup($db);
         exit;
     }
 } else if ($db == 'SNOMED') {
     if ($rf == "rf2") {
         if (!snomedRF2_import()) {
-            echo htmlspecialchars(xl('ERROR: Unable to load the file into the database.'), ENT_NOQUOTES) . "<br>";
+            echo htmlspecialchars(xl('ERROR: Unable to load the file into the database.'), ENT_NOQUOTES) . "<br />";
             temp_dir_cleanup($db);
             exit;
         } else {
@@ -71,7 +72,7 @@ if ($db == 'RXNORM') {
         }
     } else if ($version == "US Extension") {
         if (!snomed_import(true)) {
-            echo htmlspecialchars(xl('ERROR: Unable to load the file into the database.'), ENT_NOQUOTES)."<br>";
+            echo htmlspecialchars(xl('ERROR: Unable to load the file into the database.'), ENT_NOQUOTES)."<br />";
             temp_dir_cleanup($db);
             exit;
         } else {
@@ -80,7 +81,7 @@ if ($db == 'RXNORM') {
         }
     } else {
         if (!snomed_import(false)) {
-            echo htmlspecialchars(xl('ERROR: Unable to load the file into the database.'), ENT_NOQUOTES)."<br>";
+            echo htmlspecialchars(xl('ERROR: Unable to load the file into the database.'), ENT_NOQUOTES)."<br />";
             temp_dir_cleanup($db);
             exit;
         } else {
@@ -90,13 +91,13 @@ if ($db == 'RXNORM') {
     }
 } else if ($db == 'CQM_VALUESET') {
     if (!valueset_import($db)) {
-        echo htmlspecialchars(xl('ERROR: Unable to load the file into the database.'), ENT_NOQUOTES)."<br>";
+        echo htmlspecialchars(xl('ERROR: Unable to load the file into the database.'), ENT_NOQUOTES)."<br />";
         temp_dir_cleanup($db);
         exit;
     }
 } else { //$db == 'ICD'
     if (!icd_import($db)) {
-        echo htmlspecialchars(xl('ERROR: Unable to load the file into the database.'), ENT_NOQUOTES)."<br>";
+        echo htmlspecialchars(xl('ERROR: Unable to load the file into the database.'), ENT_NOQUOTES)."<br />";
         temp_dir_cleanup($db);
         exit;
     }
@@ -104,7 +105,7 @@ if ($db == 'RXNORM') {
 
 // set the revision version in the database
 if (!update_tracker_table($db, $file_revision_date, $version, $file_checksum)) {
-    echo htmlspecialchars(xl('ERROR: Unable to set the version number.'), ENT_NOQUOTES)."<br>";
+    echo htmlspecialchars(xl('ERROR: Unable to set the version number.'), ENT_NOQUOTES)."<br />";
     temp_dir_cleanup($db);
     exit;
 }

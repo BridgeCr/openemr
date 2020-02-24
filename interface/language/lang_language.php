@@ -9,6 +9,7 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 
 // Ensure this script is not called separately
@@ -20,7 +21,7 @@ if ((empty($_SESSION['lang_module_unique_id'])) ||
 unset($_SESSION['lang_module_unique_id']);
 
 // gacl control
-$thisauth = acl_check('admin', 'language');
+$thisauth = AclMain::aclCheckCore('admin', 'language');
 if (!$thisauth) {
     echo "<html>\n<body>\n";
     echo "<p>" . xlt('You are not authorized for this.') . "</p>\n";
@@ -36,14 +37,14 @@ if ($_POST['add']) {
     //validate
     $pat="^[a-z]{2}\$";
     if (!check_pattern($_POST['lang_code'], $pat)) {
-        echo xlt("Code must be two letter lowercase").'<br>';
+        echo xlt("Code must be two letter lowercase").'<br />';
         $err='y';
     }
 
     $sql="SELECT * FROM lang_languages WHERE lang_code LIKE ? or lang_description LIKE ? limit 1" ;
     $res=SqlQuery($sql, array("%".$_POST['lang_code']."%","%".$_POST['lang_name']));
     if ($res) {
-        echo xlt("Data Alike is already in database, please change code and/or description").'<br>';
+        echo xlt("Data Alike is already in database, please change code and/or description").'<br />';
         $err='y';
     }
 
@@ -58,26 +59,32 @@ if ($_POST['add']) {
         //insert into the log table - to allow persistant customizations
         insert_language_log($_POST['lang_name'], $_POST['lang_code'], '', '');
 
-            echo xlt('Language definition added').'<br>';
+            echo xlt('Language definition added').'<br />';
     }
 }
 
 ?>
 
-<TABLE>
-<FORM name="lang_form" METHOD=POST ACTION="?m=language&csrf_token_form=<?php echo attr_url(CsrfUtils::collectCsrfToken()); ?>" onsubmit="return top.restoreSession()">
-<input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
-<TR>
-    <TD><?php  echo xlt('Language Code'); ?>:</TD>
-    <TD><INPUT TYPE="text" NAME="lang_code" size="2" maxlength="2" value="<?php echo attr($val_lang_code); ?>"></TD>
-</TR>
-<TR>
-    <TD><?php  echo xlt('Language Name'); ?>:</TD>
-    <TD><INPUT TYPE="text" NAME="lang_name" size="24" value="<?php echo attr($val_lang_name); ?>"></TD>
-</TR>
-<TR>
-    <TD></TD>
-    <TD><INPUT TYPE="submit" name="add" value="<?php echo xla('Add'); ?>"></TD>
-</TR>
-</FORM>
-</TABLE>
+<table>
+    <form name="lang_form" method="post" action="?m=language&csrf_token_form=<?php echo attr_url(CsrfUtils::collectCsrfToken()); ?>" onsubmit="return top.restoreSession()">
+        <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
+        <tr>
+            <td><?php  echo xlt('Language Code'); ?>:</td>
+            <td><input type="text" name="lang_code" size="2" maxlength="2" value="<?php echo attr($val_lang_code); ?>"></td>
+        </tr>
+        <tr>
+            <td><?php  echo xlt('Language Name'); ?>:</td>
+            <td><input type="text" name="lang_name" size="24" value="<?php echo attr($val_lang_name); ?>"></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td><input type="submit" name="add" value="<?php echo xla('Add'); ?>"></td>
+        </tr>
+    </form>
+</table>
+<script>
+    $("#language-link").addClass("active");
+    $("#definition-link").removeClass("active");
+    $("#constant-link").removeClass("active");
+    $("#manage-link").removeClass("active");
+</script>

@@ -7,15 +7,16 @@
  * @author    Rod Roark <rod@sunsetsystems.com>
  * @author    Brady Miller <brady.g.miller@gmail.com>
  * @copyright Copyright (c) 2009-2010 Rod Roark <rod@sunsetsystems.com>
- * @copyright Copyright (c) 2017-2018 Brady Miller <brady.g.miller@gmail.com>
+ * @copyright Copyright (c) 2017-2019 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
 require_once("../globals.php");
 require_once("$srcdir/patient.inc");
-require_once("$srcdir/acl.inc");
 
+use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Core\Header;
 
 if (!empty($_POST)) {
     if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
@@ -59,10 +60,10 @@ function thisLineItem($patient_id, $encounter_id, $description, $transdate, $qty
             // Print product total.
             if ($_POST['form_csvexport']) {
                 if (! $_POST['form_details']) {
-                    echo '"' . display_desc($product) . '",';
-                    echo '"' . $productqty            . '",';
-                    echo '"' . formatcyp($productcyp) . '",';
-                    echo '"' . formatcyp($producttotal) . '"' . "\n";
+                    echo csvEscape(display_desc($product)) . ',';
+                    echo csvEscape($productqty)            . ',';
+                    echo csvEscape(formatcyp($productcyp)) . ',';
+                    echo csvEscape(formatcyp($producttotal)) . "\n";
                 }
             } else {
                 ?>
@@ -98,12 +99,12 @@ function thisLineItem($patient_id, $encounter_id, $description, $transdate, $qty
 
     if ($_POST['form_details']) {
         if ($_POST['form_csvexport']) {
-            echo '"' . display_desc($product) . '",';
-            echo '"' . oeFormatShortDate(display_desc($transdate)) . '",';
-            echo '"' . display_desc($invnumber) . '",';
-            echo '"' . display_desc($qty) . '",';
-            echo '"' . formatcyp($rowcyp) . '",';
-            echo '"' . formatcyp($rowresult) . '"' . "\n";
+            echo csvEscape(display_desc($product)) . ',';
+            echo csvEscape(oeFormatShortDate(display_desc($transdate))) . ',';
+            echo csvEscape(display_desc($invnumber)) . ',';
+            echo csvEscape(display_desc($qty)) . ',';
+            echo csvEscape(formatcyp($rowcyp)) . ',';
+            echo csvEscape(formatcyp($rowresult)) . "\n";
         } else {
             ?>
 
@@ -137,8 +138,8 @@ function thisLineItem($patient_id, $encounter_id, $description, $transdate, $qty
     $grandqty     += $qty;
 } // end function
 
-if (! acl_check('acct', 'rep')) {
-    die(xl("Unauthorized access."));
+if (! AclMain::aclCheckCore('acct', 'rep')) {
+    die(xlt("Unauthorized access."));
 }
 
 $form_from_date = (isset($_POST['form_from_date'])) ? DateToYYYYMMDD($_POST['form_from_date']) : date('Y-m-d');
@@ -154,30 +155,26 @@ if ($_POST['form_csvexport']) {
     header("Content-Description: File Transfer");
   // CSV headers:
     if ($_POST['form_details']) {
-        echo '"Item",';
-        echo '"Date",';
-        echo '"Invoice",';
-        echo '"Qty",';
-        echo '"CYP",';
-        echo '"Result"' . "\n";
+        echo csvEscape("Item") . ',';
+        echo csvEscape("Date") . ',';
+        echo csvEscape("Invoice") . ',';
+        echo csvEscape("Qty") . ',';
+        echo csvEscape("CYP") . ',';
+        echo csvEscape("Result") . "\n";
     } else {
-        echo '"Item",';
-        echo '"Qty",';
-        echo '"CYP",';
-        echo '"Result"' . "\n";
+        echo csvEscape("Item") . ',';
+        echo csvEscape("Qty") . ',';
+        echo csvEscape("CYP") . ',';
+        echo csvEscape("Result") . "\n";
     }
 } else { // not export
     ?>
 <html>
 <head>
 
-<link rel='stylesheet' href='<?php echo $css_header ?>' type='text/css'>
-<link rel="stylesheet" href="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-datetimepicker/build/jquery.datetimepicker.min.css">
+<title><?php echo xlt('CYP Report') ?></title>
 
-<title><?php xl('CYP Report', 'e') ?></title>
-
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-1-9-1/jquery.min.js"></script>
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-datetimepicker/build/jquery.datetimepicker.full.min.js"></script>
+    <?php Header::setupHeader(['datetime-picker']); ?>
 
 <script language="JavaScript">
     $(function() {
@@ -357,10 +354,10 @@ if ($_POST['form_refresh'] || $_POST['form_csvexport']) {
 
     if ($_POST['form_csvexport']) {
         if (! $_POST['form_details']) {
-            echo '"' . display_desc($product) . '",';
-            echo '"' . $productqty            . '",';
-            echo '"' . formatcyp($productcyp) . '",';
-            echo '"' . formatcyp($producttotal) . '"' . "\n";
+            echo csvEscape(display_desc($product)) . ',';
+            echo csvEscape($productqty)            . ',';
+            echo csvEscape(formatcyp($productcyp)) . ',';
+            echo csvEscape(formatcyp($producttotal)) . "\n";
         }
     } else {
         ?>

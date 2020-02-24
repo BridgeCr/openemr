@@ -16,6 +16,7 @@
 /* Include our required headers */
 require_once('../globals.php');
 
+use OpenEMR\Common\Auth\AuthUtils;
 use OpenEMR\Common\Crypto\CryptoGen;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Utils\RandomGenUtils;
@@ -105,7 +106,6 @@ function generate_html_top()
 function generate_html_middle()
 {
     posted_to_hidden('new_login_session_management');
-    posted_to_hidden('authProvider');
     posted_to_hidden('languageChoice');
     posted_to_hidden('authUser');
     posted_to_hidden('clearPass');
@@ -129,7 +129,7 @@ if (isset($_POST['new_login_session_management'])) {
     $res1 = sqlStatement(
         "SELECT a.name, a.method, a.var1 FROM login_mfa_registrations AS a " .
         "WHERE a.user_id = ? AND (a.method = 'TOTP' OR a.method = 'U2F') ORDER BY a.name",
-        array($_SESSION['authId'])
+        array($_SESSION['authUserID'])
     );
 
     $registrationAttempt = false;
@@ -157,7 +157,7 @@ if (isset($_POST['new_login_session_management'])) {
             $appId = $scheme . $_SERVER['HTTP_HOST'];
             $u2f = new u2flib_server\U2F($appId);
         }
-        $userid = $_SESSION['authId'];
+        $userid = $_SESSION['authUserID'];
         $form_response = empty($_POST['form_response']) ? '' : $_POST['form_response'];
         if ($form_response) {
             // TOTP METHOD enabled if TOTP is visible in post request
@@ -168,7 +168,7 @@ if (isset($_POST['new_login_session_management'])) {
 
                 $res1 = sqlQuery(
                     "SELECT a.var1 FROM login_mfa_registrations AS a WHERE a.user_id = ? AND a.method = 'TOTP'",
-                    array($_SESSION['authId'])
+                    array($_SESSION['authUserID'])
                 );
                 $registrationSecret = false;
                 if (!empty($res1['var1'])) {
@@ -208,7 +208,7 @@ if (isset($_POST['new_login_session_management'])) {
                     // Keep track of when challenges were last answered correctly.
                     privStatement(
                         "UPDATE users_secure SET last_challenge_response = NOW() WHERE id = ?",
-                        array($_SESSION['authId'])
+                        array($_SESSION['authUserID'])
                     );
                 } else {
                     $errormsg = xl("The code you entered was not valid");
@@ -238,7 +238,7 @@ if (isset($_POST['new_login_session_management'])) {
                     // Keep track of when challenges were last answered correctly.
                     sqlStatement(
                         "UPDATE users_secure SET last_challenge_response = NOW() WHERE id = ?",
-                        array($_SESSION['authId'])
+                        array($_SESSION['authUserID'])
                     );
                 } catch (u2flib_server\Error $e) {
                     // Authentication failed so we will build the U2F form again.
@@ -279,7 +279,7 @@ if (isset($_POST['new_login_session_management'])) {
                 echo '              <fieldset>';
                 echo '                  <legend>' . xlt('Provide TOTP code') . '</legend>';
                 echo '                  <div class="form-group">';
-                echo '                      <div class="col-sm-6 col-sm-offset-3">';
+                echo '                      <div class="col-sm-6 offset-sm-3">';
                 echo '                          <label for="totp">' . xlt('Enter the code from your authentication application on your device') . ':</label>';
                 echo '                          <input type="text" name="totp" class="form-control input-lg" id="totp" maxlength="12" required>';
                 echo '                          <input type="hidden" name="form_response" value="true" />';
@@ -288,7 +288,7 @@ if (isset($_POST['new_login_session_management'])) {
                 echo '              </fieldset>';
                 echo '                  <div class="form-group clearfix">';
                 echo '                      <div class="col-sm-12 text-left position-override">';
-                echo '                          <button type="submit" class="btn btn-default btn-save">' . xlt('Authenticate TOTP') . '</button>';
+                echo '                          <button type="submit" class="btn btn-secondary btn-save">' . xlt('Authenticate TOTP') . '</button>';
                 echo '                  </div>';
                 echo '              </div>';
                 echo '          </div>';
@@ -322,7 +322,7 @@ if (isset($_POST['new_login_session_management'])) {
                 echo '              <fieldset>';
                 echo '                  <legend>' . xlt('Insert U2F Key') . '</legend>';
                 echo '                  <div class="form-group">';
-                echo '                      <div class="col-sm-6 col-sm-offset-3">';
+                echo '                      <div class="col-sm-6 offset-sm-3">';
                 echo '                          <ul>';
                 echo '                              <li>' . xlt('Insert your key into a USB port and click the Authenticate button below.') . '</li>';
                 echo '                              <li>' . xlt('Then press the flashing button on your key within 1 minute.') . '</li>';
@@ -331,7 +331,7 @@ if (isset($_POST['new_login_session_management'])) {
                 echo '              </fieldset>';
                 echo '                  <div class="form-group clearfix">';
                 echo '                      <div class="col-sm-12 text-left position-override">';
-                echo '                          <button type="button"  id="authutf" class="btn btn-default btn-save" onclick="doAuth()">' . xlt('Authenticate U2F') . '</button>';
+                echo '                          <button type="button"  id="authutf" class="btn btn-secondary btn-save" onclick="doAuth()">' . xlt('Authenticate U2F') . '</button>';
                 echo '                          <input type="hidden" name="form_requests" value="' . attr($requests) . '" />';
                 echo '                          <input type="hidden" name="form_response" value="" />';
                 generate_html_middle();
@@ -388,32 +388,30 @@ if ($GLOBALS['login_into_facility']) {
     }
 }
 
-// Fetch the password expiration date
+// Fetch the password expiration date (note LDAP skips this)
 $is_expired=false;
-if ($GLOBALS['password_expiration_days'] != 0) {
-    $is_expired=false;
-    $q= (isset($_POST['authUser'])) ? $_POST['authUser'] : '';
-    $result = sqlStatement("select pwd_expiration_date from users where username = ?", array($q));
+if ((!AuthUtils::useActiveDirectory()) && ($GLOBALS['password_expiration_days'] != 0) && (check_integer($GLOBALS['password_expiration_days']))) {
+    $result = privQuery("select `last_update_password` from `users_secure` where `id` = ?", [$_SESSION['authUserID']]);
     $current_date = date('Y-m-d');
-    $pwd_expires_date = $current_date;
-    if ($row = sqlFetchArray($result)) {
-        $pwd_expires_date = $row['pwd_expiration_date'];
+    if (!empty($result['last_update_password'])) {
+        $pwd_last_update = $result['last_update_password'];
+    } else {
+        error_log("OpenEMR ERROR: there is a problem with recording of last_update_password entry in users_secure table");
+        $pwd_last_update = $current_date;
     }
 
-  // Display the password expiration message (starting from 7 days before the password gets expired)
-    $pwd_alert_date = date('Y-m-d', strtotime($pwd_expires_date . '-7 days'));
+    // Display the password expiration message (will show during the grace time)
+    $pwd_alert_date = date('Y-m-d', strtotime($pwd_last_update . '+' . $GLOBALS['password_expiration_days'] . ' days'));
 
-    if (strtotime($pwd_alert_date) != '' &&
-      strtotime($current_date) >= strtotime($pwd_alert_date) &&
-      (!isset($_SESSION['expiration_msg'])
-      or $_SESSION['expiration_msg'] == 0)) {
+    if (empty(strtotime($pwd_alert_date))) {
+        error_log("OpenEMR ERROR: there is a problem when trying to check if user's password is expired");
+    } else if (strtotime($current_date) >= strtotime($pwd_alert_date)) {
         $is_expired = true;
-        $_SESSION['expiration_msg'] = 1; // only show the expired message once
     }
 }
 
 if ($is_expired) {
-  //display the php file containing the password expiration message.
+    //display the php file containing the password expiration message.
     $frame1url = "pwd_expires_alert.php?csrf_token_form=" . attr_url(CsrfUtils::collectCsrfToken());
     $frame1target = "adm";
 } elseif (!empty($_POST['patientID'])) {

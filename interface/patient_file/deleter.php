@@ -17,9 +17,9 @@
 
 
 require_once('../globals.php');
-require_once($GLOBALS['srcdir'].'/acl.inc');
 
 use OpenEMR\Billing\BillingUtilities;
+use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Common\Logging\EventAuditLogger;
 use OpenEMR\Core\Header;
@@ -69,7 +69,7 @@ function row_delete($table, $where)
     if ($count) {
         $query = "DELETE FROM " . escape_table_name($table) . " WHERE $where";
         if (!$GLOBALS['sql_string_no_show_screen']) {
-            echo text($query) . "<br>\n";
+            echo text($query) . "<br />\n";
         }
 
         sqlStatement($query);
@@ -85,7 +85,7 @@ function row_modify($table, $set, $where)
         EventAuditLogger::instance()->newEvent("deactivate", $_SESSION['authUser'], $_SESSION['authProvider'], 1, "$table: $where");
         $query = "UPDATE " . escape_table_name($table) . " SET $set WHERE $where";
         if (!$GLOBALS['sql_string_no_show_screen']) {
-            echo text($query) . "<br>\n";
+            echo text($query) . "<br />\n";
         }
 
         sqlStatement($query);
@@ -230,7 +230,7 @@ if ($_POST['form_submit']) {
     }
 
     if ($patient) {
-        if (!acl_check('admin', 'super') || !$GLOBALS['allow_pat_delete']) {
+        if (!AclMain::aclCheckCore('admin', 'super') || !$GLOBALS['allow_pat_delete']) {
             die(xlt("Not authorized!"));
         }
 
@@ -266,7 +266,7 @@ if ($_POST['form_submit']) {
 
         row_delete("patient_data", "pid = '" . add_escape_custom($patient) . "'");
     } else if ($encounterid) {
-        if (!acl_check('admin', 'super')) {
+        if (!AclMain::aclCheckCore('admin', 'super')) {
             die("Not authorized!");
         }
 
@@ -282,7 +282,7 @@ if ($_POST['form_submit']) {
 
         row_delete("forms", "encounter = '" . add_escape_custom($encounterid) . "'");
     } else if ($formid) {
-        if (!acl_check('admin', 'super')) {
+        if (!AclMain::aclCheckCore('admin', 'super')) {
             die("Not authorized!");
         }
 
@@ -294,21 +294,24 @@ if ($_POST['form_submit']) {
         form_delete($formdir, $row['form_id'], $row['pid'], $row['encounter']);
         row_delete("forms", "id = '" . add_escape_custom($formid) . "'");
     } else if ($issue) {
-        if (!acl_check('admin', 'super')) {
+        if (!AclMain::aclCheckCore('admin', 'super')) {
             die("Not authorized!");
         }
 
         row_delete("issue_encounter", "list_id = '" . add_escape_custom($issue) ."'");
         row_delete("lists", "id = '" . add_escape_custom($issue) ."'");
     } else if ($document) {
-        if (!acl_check('patients', 'docs_rm')) {
+        if (!AclMain::aclCheckCore('patients', 'docs_rm')) {
             die("Not authorized!");
         }
 
         delete_document($document);
     } else if ($payment) {
-        if (!acl_check('admin', 'super')) {
-            die("Not authorized!");
+        if (!AclMain::aclCheckCore('admin', 'super')) {
+            // allow biller to delete misapplied payments
+            if (!AclMain::aclCheckCore('acct', 'bill')) {
+                die("Not authorized!");
+            }
         }
 
         list($patient_id, $timestamp, $ref_id) = explode(".", $payment);
@@ -385,7 +388,7 @@ if ($_POST['form_submit']) {
             row_delete("payments", "id = '" . add_escape_custom($payrow['id']) . "'");
         }
     } else if ($billing) {
-        if (!acl_check('acct', 'disc')) {
+        if (!AclMain::aclCheckCore('acct', 'disc')) {
             die("Not authorized!");
         }
 
@@ -410,7 +413,7 @@ if ($_POST['form_submit']) {
         "pid = ? AND encounter = ?", array($patient_id, $encounter_id));
         BillingUtilities::updateClaim(true, $patient_id, $encounter_id, -1, -1, 1, 0, ''); // clears for rebilling
     } else if ($transaction) {
-        if (!acl_check('admin', 'super')) {
+        if (!AclMain::aclCheckCore('admin', 'super')) {
             die("Not authorized!");
         }
 
@@ -445,7 +448,7 @@ if ($_POST['form_submit']) {
 
 <form method='post' name="deletefrm" action='deleter.php?patient=<?php echo attr_url($patient) ?>&encounterid=<?php echo attr_url($encounterid) ?>&formid=<?php echo attr_url($formid) ?>&issue=<?php echo attr_url($issue) ?>&document=<?php echo attr_url($document) ?>&payment=<?php echo attr_url($payment) ?>&billing=<?php echo attr_url($billing) ?>&transaction=<?php echo attr_url($transaction); ?>&csrf_token_form=<?php echo attr_url(CsrfUtils::collectCsrfToken()); ?>' onsubmit="javascript:alert('1');document.deleform.submit();">
 <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
-<p class="lead">&nbsp;<br><?php echo xlt('Do you really want to delete'); ?>
+<p class="lead">&nbsp;<br /><?php echo xlt('Do you really want to delete'); ?>
 
 <?php
 if ($patient) {
@@ -467,7 +470,7 @@ if ($patient) {
 }
 ?> <?php echo xlt('and all subordinate data? This action will be logged'); ?>!</p>
 <div class="btn-group">
-    <a href="#" onclick="submit_form()" class="btn btn-lg btn-save btn-default"><?php echo xlt('Yes, Delete and Log'); ?></a>
+    <a href="#" onclick="submit_form()" class="btn btn-lg btn-save btn-secondary"><?php echo xlt('Yes, Delete and Log'); ?></a>
     <a href='#' class="btn btn-lg btn-link btn-cancel" onclick="popup_close();"><?php echo xlt('No, Cancel');?></a>
 </div>
 <input type='hidden' name='form_submit' value='Yes, Delete and Log'/>

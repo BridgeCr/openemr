@@ -20,7 +20,8 @@ require_once("../../globals.php");
 require_once("$srcdir/calendar.inc");
 require_once("$srcdir/patient.inc");
 require_once 'includes/pnAPI.php';
-require_once("$srcdir/acl.inc");
+
+use OpenEMR\Common\Acl\AclMain;
 
 // From Michael Brinson 2006-09-19:
 if (isset($_POST['pc_username'])) {
@@ -59,7 +60,7 @@ if ($GLOBALS['login_into_facility']) {
 
 // override the cookie if the user doesn't have access to that facility any more
 if ($_SESSION['userauthorized'] != 1 && $GLOBALS['restrict_user_facility']) {
-    $facilities = getUserFacilities($_SESSION['authId']);
+    $facilities = getUserFacilities($_SESSION['authUserID']);
     // use the first facility the user has access to, unless...
     $_SESSION['pc_facility'] = $facilities[0]['id'];
     // if the cookie is in the users' facilities, use that.
@@ -97,13 +98,7 @@ if (isset($_REQUEST['viewtype'])) {
 pnInit();
 
 // Get variables
-list($module,
-     $func,
-     $type) = pnVarCleanFromInput(
-         'module',
-         'func',
-         'type'
-     );
+list($module, $func, $type) = pnVarCleanFromInput('module', 'func', 'type');
 
 if ($module != "PostCalendar") {
     // exit if not using PostCalendar module
@@ -111,7 +106,7 @@ if ($module != "PostCalendar") {
 }
 
 if ($type == "admin") {
-    if (!acl_check('admin', 'calendar')) {
+    if (!AclMain::aclCheckCore('admin', 'calendar')) {
         // exit if do not have access
         exit;
     }

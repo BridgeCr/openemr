@@ -18,7 +18,6 @@
 
 
 require_once("../globals.php");
-require_once("$srcdir/acl.inc");
 require_once("$srcdir/appointments.inc.php");
 require_once("$srcdir/patient.inc");
 require_once("$srcdir/user.inc");
@@ -319,7 +318,7 @@ $html .= "<title>" . text($frow['name']) . "</title>
 <script language=\"JavaScript\">";
 
 $html .= "
-$(document).ready(function() {
+$(function() {
  var win = top.printLogSetup ? top : opener.top;
  win.printLogSetup(document.getElementById('printbutton'));
 });

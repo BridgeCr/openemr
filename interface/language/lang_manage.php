@@ -9,6 +9,7 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
+use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 
 // Ensure this script is not called separately
@@ -20,7 +21,7 @@ if ((empty($_SESSION['lang_module_unique_id'])) ||
 unset($_SESSION['lang_module_unique_id']);
 
 // gacl control
-$thisauth = acl_check('admin', 'language');
+$thisauth = AclMain::aclCheckCore('admin', 'language');
 if (!$thisauth) {
     echo "<html>\n<body>\n";
     echo "<p>" . xlt('You are not authorized for this.') . "</p>\n";
@@ -71,7 +72,7 @@ if ($_POST['check'] || $_POST['synchronize']) {
             continue;
         }
 
-        echo xlt('Following is a new custom language:')." ".text($var)."<BR>";
+        echo xlt('Following is a new custom language:')." ".text($var)."<br>";
         if (!$checkOnly) {
             // add the new language (first collect the language code)
             $sql = "SELECT lang_code FROM lang_custom WHERE constant_name='' AND lang_description=? ".$case_sensitive_collation." LIMIT 1";
@@ -79,7 +80,7 @@ if ($_POST['check'] || $_POST['synchronize']) {
             $row = SqlFetchArray($res);
             $sql="INSERT INTO lang_languages SET lang_code=?, lang_description=?";
             SqlStatement($sql, array($row['lang_code'], $var));
-            echo xlt('Synchronized new custom language:')." ".text($var)."<BR><BR>";
+            echo xlt('Synchronized new custom language:')." ".text($var)."<br><br>";
         }
 
         $difference = 1;
@@ -108,12 +109,12 @@ if ($_POST['check'] || $_POST['synchronize']) {
             continue;
         }
 
-        echo xlt('Following is a new custom constant:')." ".text($var)."<BR>";
+        echo xlt('Following is a new custom constant:')." ".text($var)."<br>";
         if (!$checkOnly) {
             // add the new constant
             $sql="INSERT INTO lang_constants SET constant_name=?";
             SqlStatement($sql, array($var));
-            echo xlt('Synchronized new custom constant:')." ".text($var)."<BR><BR>";
+            echo xlt('Synchronized new custom constant:')." ".text($var)."<br><br>";
         }
 
         $difference = 1;
@@ -155,7 +156,7 @@ if ($_POST['check'] || $_POST['synchronize']) {
                 echo xlt('Following is a new definition (Language, Constant, Definition):').
                 " ".text($row['lang_description']).
                 " ".text($row['constant_name']).
-                " ".text($row['definition'])."<BR>";
+                " ".text($row['definition'])."<br>";
                 if (!$checkOnly) {
                     //add new definition
                     $sql = "UPDATE `lang_definitions` SET `definition`=? WHERE `def_id`=? LIMIT 1";
@@ -163,7 +164,7 @@ if ($_POST['check'] || $_POST['synchronize']) {
                     echo xlt('Synchronized new definition (Language, Constant, Definition):').
                     " ".text($row['lang_description']).
                     " ".text($row['constant_name']).
-                    " ".text($row['definition'])."<BR><BR>";
+                    " ".text($row['definition'])."<br><br>";
                 }
 
                 $difference = 1;
@@ -172,7 +173,7 @@ if ($_POST['check'] || $_POST['synchronize']) {
             echo xlt('Following is a new definition (Language, Constant, Definition):').
             " ".text($row['lang_description']).
             " ".text($row['constant_name']).
-            " ".text($row['definition'])."<BR>";
+            " ".text($row['definition'])."<br>";
             if (!$checkOnly) {
                 //add new definition
                 $sql = "INSERT INTO lang_definitions (cons_id,lang_id,definition) VALUES (?,?,?)";
@@ -180,7 +181,7 @@ if ($_POST['check'] || $_POST['synchronize']) {
                 echo xlt('Synchronized new definition (Language, Constant, Definition):').
                 " ".text($row['lang_description']).
                 " ".text($row['constant_name']).
-                " ".text($row['definition'])."<BR><BR>";
+                " ".text($row['definition'])."<br><br>";
             }
 
             $difference = 1;
@@ -193,17 +194,23 @@ if ($_POST['check'] || $_POST['synchronize']) {
 }
 ?>
 
-<TABLE>
-<FORM name="manage_form" METHOD=POST ACTION="?m=manage&csrf_token_form=<?php echo attr_url(CsrfUtils::collectCsrfToken()); ?>" onsubmit="return top.restoreSession()">
-    <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
-  <TR>
-    <TD><INPUT TYPE="submit" name="check" value="<?php echo xla('Check'); ?>"></TD>
-    <TD class="text">(<?php echo xlt('Check for differences of translations with custom language table.'); ?>)</TD>
-  </TR>
-  <TR></TR>
-  <TR>
-    <TD><INPUT TYPE="submit" name="synchronize" value="<?php echo xla('Synchronize'); ?>"></TD>
-    <TD class="text">(<?php echo xlt('Synchronize translations with custom language table.'); ?>)</TD>
-  </TR>
-</FORM>
-</TABLE>
+<table>
+    <form name="manage_form" method="post" action="?m=manage&csrf_token_form=<?php echo attr_url(CsrfUtils::collectCsrfToken()); ?>" onsubmit="return top.restoreSession()">
+        <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
+        <tr>
+            <td><input type="submit" name="check" value="<?php echo xla('Check'); ?>"></td>
+            <td class="text">(<?php echo xlt('Check for differences of translations with custom language table.'); ?>)</td>
+        </tr>
+        <tr></tr>
+        <tr>
+            <td><input type="submit" name="synchronize" value="<?php echo xla('Synchronize'); ?>"></td>
+            <td class="text">(<?php echo xlt('Synchronize translations with custom language table.'); ?>)</td>
+        </tr>
+    </form>
+</table>
+<script>
+    $("#manage-link").addClass("active");
+    $("#definition-link").removeClass("active");
+    $("#language-link").removeClass("active");
+    $("#constant-link").removeClass("active");
+</script>

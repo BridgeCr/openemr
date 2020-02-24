@@ -5,6 +5,7 @@
  * @package   OpenEMR
  * @link      http://www.open-emr.org
  * @author    Sam Likins <sam.likins@wsi-services.com>
+ * @author    Ken Chapple <ken@mi-squared.com>
  * @copyright Copyright (c) 2015 Sam Likins <sam.likins@wsi-services.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
@@ -634,6 +635,25 @@ class eRxXMLBuilder
             $element->appendChild($this->createElementText('gender', substr($patient['sex'], 0, 1)));
         }
 
+        $vitals = $this->getStore()->getPatientVitalsByPatientId($patient['pid']);
+        $age = getPatientAgeYMD($patient['date_of_birth']);
+
+        if ($vitals['height'] &&
+            $vitals['height_units']) {
+            $element->appendChild($this->createElementText('height', $vitals['height']));
+            $element->appendChild($this->createElementText('heightUnits', $vitals['height_units']));
+        } else if ($age['age'] < 19) {
+            $this->warningMessage('', xl('Patient Height Vital is required under age 19'));
+        }
+
+        if ($vitals['weight'] &&
+            $vitals['weight_units']) {
+            $element->appendChild($this->createElementText('weight', $vitals['weight']));
+            $element->appendChild($this->createElementText('weightUnits', $vitals['weight_units']));
+        } else if ($age['age'] < 19) {
+            $this->warningMessage('', xl('Patient Weight Vital is required under age 19'));
+        }
+
         return $element;
     }
 
@@ -732,7 +752,7 @@ class eRxXMLBuilder
                     'doctorName'        => $prescription['docname'],
                     'drug'              => $this->trimData($this->stripSpecialCharacter($prescription['drug']), 80),
                     'dispenseNumber'    => intval($prescription['quantity']),
-                    'sig'               => $this->trimData($this->stripSpecialCharacter($prescription['quantity'][1].$prescription['size'].' '.$prescription['title4'].' '.$prescription['dosage'].' In '.$prescription['title1'].' '.$prescription['title2'].' '.$prescription['title3'], 140)),
+                    'sig'               => $this->trimData($this->stripSpecialCharacter($prescription['quantity'][1].$prescription['size'].' '.$prescription['title4'].' '.$prescription['dosage'].' In '.$prescription['title1'].' '.$prescription['title2'].' '.$prescription['title3']), 140),
                     'refillCount'       => intval($prescription['per_refill']),
                     'prescriptionType'  => 'reconcile'
                 ));

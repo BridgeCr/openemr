@@ -5,6 +5,7 @@
  * @package   OpenEMR
  * @link      http://www.open-emr.org
  * @author    Brady Miller <brady.g.miller@gmail.com>
+ * @author    Rod Roark <rod@sunsetsystems.com>
  * @copyright Copyright (c) 2018-2019 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
@@ -240,7 +241,7 @@ require_once $GLOBALS['vendor_dir'] ."/autoload.php";
  * @link http://open-emr.org/wiki/index.php/Dotenv_Usage
  */
 if (file_exists("{$webserver_root}/.env")) {
-    $dotenv = Dotenv::create($webserver_root);
+    $dotenv = Dotenv::createImmutable($webserver_root);
     $dotenv->load();
 }
 
@@ -257,25 +258,10 @@ require_once(dirname(__FILE__) . "/../version.php");
 //    - TRACE is useful when debugging hard to spot bugs
 $GLOBALS["log_level"] = "OFF";
 
-// @TODO This needs to be broken out to it's own function, but for time's sake
-// @TODO putting it here until we land on a good place. RD 2017-05-02
-$twigOptions = [
-    'debug' => false,
-];
-$twigLoader = new Twig_Loader_Filesystem();
-$twigEnv = new Twig_Environment($twigLoader, $twigOptions);
-if (array_key_exists('debug', $twigOptions) && $twigOptions['debug'] == true) {
-    $twigEnv->addExtension(new Twig_Extension_Debug());
-}
-$twigEnv->addGlobal('assets_dir', $GLOBALS['assets_static_relative']);
-$twigEnv->addGlobal('srcdir', $GLOBALS['srcdir']);
-$twigEnv->addGlobal('rootdir', $GLOBALS['rootdir']);
-$twigEnv->addFilter(new Twig_SimpleFilter('translate', function ($string) {
-    return xl($string);
-}));
-/** Twig_Loader */
-$GLOBALS['twigLoader'] = $twigLoader;
-/** Twig_Environment */
+// Load twig support
+$twigLoader = new Twig\Loader\FilesystemLoader($webserver_root.'/templates');
+$twigEnv = new Twig\Environment($twigLoader, ['autoescape' => false]);
+$twigEnv->addExtension(new OpenEMR\Core\TwigExtension());
 $GLOBALS['twig'] = $twigEnv;
 
 try {
@@ -299,7 +285,7 @@ $GLOBALS['ippf_specific'] = false;
 $GLOBALS['inhouse_pharmacy'] = false;
 $GLOBALS['sell_non_drug_products'] = 0;
 
-$glrow = sqlQuery("SHOW TABLES LIKE 'globals'");
+$glrow = sqlQueryNoLog("SHOW TABLES LIKE 'globals'");
 if (!empty($glrow)) {
   // Collect user specific settings from user_settings table.
   //
@@ -311,7 +297,7 @@ if (!empty($glrow)) {
         $temp_authuserid = $_SESSION['authUserID'];
     } else {
         if (!empty($_POST['authUser'])) {
-            $temp_sql_ret = sqlQuery("SELECT `id` FROM `users` WHERE `username` = ?", array($_POST['authUser']));
+            $temp_sql_ret = sqlQueryNoLog("SELECT `id` FROM `users` WHERE BINARY `username` = ?", array($_POST['authUser']));
             if (!empty($temp_sql_ret['id'])) {
               //Set the user id from the login variable
                 $temp_authuserid = $temp_sql_ret['id'];
@@ -320,7 +306,7 @@ if (!empty($glrow)) {
     }
 
     if (!empty($temp_authuserid)) {
-        $glres_user = sqlStatement(
+        $glres_user = sqlStatementNoLog(
             "SELECT `setting_label`, `setting_value` " .
             "FROM `user_settings` " .
             "WHERE `setting_user` = ? " .
@@ -338,7 +324,7 @@ if (!empty($glrow)) {
   // Some parameters require custom handling.
   //
     $GLOBALS['language_menu_show'] = array();
-    $glres = sqlStatement(
+    $glres = sqlStatementNoLog(
         "SELECT gl_name, gl_index, gl_value FROM globals " .
         "ORDER BY gl_name, gl_index"
     );
@@ -388,7 +374,7 @@ if (!empty($glrow)) {
             }
 
           // Synchronize MySQL time zone with PHP time zone.
-            sqlStatement("SET time_zone = ?", array((new DateTime())->format("P")));
+            sqlStatementNoLog("SET time_zone = ?", array((new DateTime())->format("P")));
         } else {
             $GLOBALS[$gl_name] = $gl_value;
         }
@@ -409,7 +395,7 @@ if (!empty($glrow)) {
     $rtl_override = false;
     if (isset($_SESSION['language_direction'])) {
         if ($_SESSION['language_direction'] == 'rtl' &&
-        !strpos($GLOBALS['css_header'], 'rtl')  ) {
+        !strpos($GLOBALS['css_header'], 'rtl')) {
             // the $css_header_value is set above
             $rtl_override = true;
         }
@@ -423,7 +409,7 @@ if (!empty($glrow)) {
         }
     } else {
         //$_SESSION['language_direction'] is not set, so will use the default language
-        $default_lang_id = sqlQuery('SELECT lang_id FROM lang_languages WHERE lang_description = ?', array($GLOBALS['language_default']));
+        $default_lang_id = sqlQueryNoLog('SELECT lang_id FROM lang_languages WHERE lang_description = ?', array($GLOBALS['language_default']));
 
         if (getLanguageDir($default_lang_id['lang_id']) === 'rtl' && !strpos($GLOBALS['css_header'], 'rtl')) {
 // @todo eliminate 1 SQL query
@@ -467,7 +453,7 @@ if (!empty($glrow)) {
     $GLOBALS['translate_form_titles'] = true;
     $GLOBALS['translate_document_categories'] = true;
     $GLOBALS['translate_appt_categories'] = true;
-    $timeout = 7200;
+    $GLOBALS['timeout'] = 7200;
     $openemr_name = 'OpenEMR';
     $css_header = "$web_root/public/themes/style_default.css";
     $GLOBALS['css_header'] = $css_header;
@@ -508,13 +494,6 @@ $tmore = xl('(More)');
 //   Note this label gets translated here via the xl function
 //    -if you don't want it translated, then strip the xl function away
 $tback = xl('(Back)');
-
-// This is the idle logout function:
-// if a page has not been refreshed within this many seconds, the interface
-// will return to the login page
-if (!empty($special_timeout)) {
-    $timeout = intval($special_timeout);
-}
 
 $versionService = new \OpenEMR\Services\VersionService();
 $version = $versionService->fetch();

@@ -24,7 +24,7 @@ $scheme = "https://"; // isset($_SERVER['HTTPS']) ? "https://" : "http://";
 $appId = $scheme . $_SERVER['HTTP_HOST'];
 $u2f = new u2flib_server\U2F($appId);
 
-$userid = $_SESSION['authId'];
+$userid = $_SESSION['authUserID'];
 $action = $_REQUEST['action'];
 $user_name = getUserIDInfo($userid);
 $user_full_name = $user_name['fname'] . " " . $user_name['lname'];
@@ -136,7 +136,7 @@ function docancel() {
                 </fieldset>
                 <div class="form-group clearfix">
                 <div class="col-sm-12 text-left position-override">
-                        <button type="button" class="btn btn-default btn-save" value='<?php echo xla('Register'); ?>' onclick='doregister()'><?php echo xlt('Register'); ?></button>
+                        <button type="button" class="btn btn-secondary btn-save" value='<?php echo xla('Register'); ?>' onclick='doregister()'><?php echo xlt('Register'); ?></button>
                         <button type="button" class="btn btn-link btn-cancel btn-separate-left" value="<?php echo xla('Cancel'); ?>" onclick="docancel()" ><?php echo xlt('Cancel'); ?></button>
                     </div>
                 </div>

@@ -13,11 +13,11 @@
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
 
-
 require_once('../../globals.php');
 require_once $GLOBALS['srcdir'].'/ESign/Api.php';
 
 use Esign\Api;
+use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Core\Header;
 
@@ -38,14 +38,13 @@ if ($GLOBALS['prevent_browser_refresh'] > 1) {
 
 $esignApi = new Api();
 
-?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html>
 <head>
 <title><?php echo text($openemr_name); ?></title>
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script type="text/javascript">
+<script>
 
 // This is to prevent users from losing data by refreshing or backing out of OpenEMR.
 //  (default behavior, however, this behavior can be turned off in the prevent_browser_refresh global)
@@ -259,8 +258,8 @@ if ($GLOBALS['erx_enable']) {
 $track_anything_sql = sqlQuery("SELECT `state` FROM `registry` WHERE `directory` = 'track_anything'");
 $GLOBALS['track_anything_state'] = $track_anything_sql['state'];
 // prepare Issues popup link global that is used in creating the menu
-$GLOBALS['allow_issue_menu_link'] = ((acl_check('encounters', 'notes', '', 'write') || acl_check('encounters', 'notes_a', '', 'write')) &&
-  acl_check('patients', 'med', '', 'write'));
+$GLOBALS['allow_issue_menu_link'] = ((AclMain::aclCheckCore('encounters', 'notes', '', 'write') || AclMain::aclCheckCore('encounters', 'notes_a', '', 'write')) &&
+  AclMain::aclCheckCore('patients', 'med', '', 'write'));
 ?>
 
 <?php require_once("templates/tabs_template.php"); ?>
@@ -286,25 +285,27 @@ $GLOBALS['allow_issue_menu_link'] = ((acl_check('encounters', 'notes', '', 'writ
     app_view_model.application_data.user(new user_data_view_model(<?php echo json_encode($_SESSION["authUser"])
         .',' . json_encode($userQuery['fname'])
         .',' . json_encode($userQuery['lname'])
-        .',' . json_encode($_SESSION['authGroup']); ?>));
+        .',' . json_encode($_SESSION['authProvider']); ?>));
 
 </script>
 <script>
     $(window).on('resize', function() {
+        var win = $(this);
+        var winWidth = $(this).width();
 
-     var win = $(this);
-     var winWidth = $(this).width();
-        if (winWidth >  <?php echo js_escape($width); ?>) {
+        let phpWidth = <?php echo js_escape($width); ?>;
+        phpWidth /= 1;
+        if (winWidth > phpWidth) {
             $("#tabs_div").removeClass('col-sm-10');
             $("#mainFrames_div").removeClass('col-sm-10');
             $("#menu_icon").addClass('fa-bars');
 
-            $("#username div:first-child" ).addClass("userSection");
+            $("#username div:first-child").addClass("userSection");
             $(".appMenu_small").addClass('appMenu');
             $(".appMenu_small").removeClass('appMenu_small');
 
-        } else if (winWidth <=  <?php echo js_escape($width); ?> ){
-            $("#username div:first-child" ).removeClass("userSection");
+        } else if (winWidth < phpWidth) {
+            $("#username div:first-child").removeClass("userSection");
             $(".appMenu").addClass('appMenu_small');
             $(".appMenu").removeClass('appMenu');
         }
@@ -312,23 +313,21 @@ $GLOBALS['allow_issue_menu_link'] = ((acl_check('encounters', 'notes', '', 'writ
     $(function() {
         $(window).trigger('resize');// to avoid repeating code triggers above on page open
     });
-
 </script>
 
 <style>
-@media only screen and (max-width: <?php echo attr($width); ?>px) {
-    .patientDataColumn
-    {
-        width: 100% !important;
-        float: left;
-        display: block;
+    @media only screen and (max-width: <?php echo attr($width) . 'px'; ?>) {
+        .patientDataColumn {
+            width: 100% !important;
+            float: left;
+            display: block;
+        }
     }
-}
 
-html, body{
-    min-height:100% !important;
-    height:100% !important;
-}
+    html, body {
+        min-height: 100% !important;
+        height: 100% !important;
+    }
 </style>
 
 </head>
@@ -346,7 +345,7 @@ if (isset($_SESSION['app1'])) {
     );
     if ($rs['app_url'] != "main/main_screen.php") {
         echo '<iframe name="app1" src="../../'.attr($rs['app_url']).'"
-    			style="position:absolute; left:0; top:0; height:100%; width:100%; border:none;" />';
+    			style="position: absolute; left: 0; top: 0; height: 100%; width: 100%; border: none;" />';
         $disp_mainBox = 'style="display: none;"';
     }
 }
@@ -354,31 +353,32 @@ if (isset($_SESSION['app1'])) {
 <div id="mainBox" <?php echo $disp_mainBox ?> data-bind='attr: {id: responsiveDisplay.objWidth().mainBoxId}  '>
 
     <div id="dialogDiv"></div>
-
+    
     <div class="body_top" id="body_top_div" data-bind='css: responsiveDisplay.objWidth().bodyTopDivWidth'>
-        <div id="logo_menu" >
-        <a href="https://www.open-emr.org" title="OpenEMR <?php echo xla("Website"); ?>" rel="noopener" target="_blank"><img class="logo oe-pull-toward" id='oemr_logo' alt="openEMR small logo"  style="width:20px" border="0" src="<?php echo $GLOBALS['images_static_relative']; ?>/menu-logo.png"></a>
-        <div>
-        <i class="fa fa-2x fa-bars oe-hidden col-sm-2 oe-pull-away" aria-hidden="true" id='menu_icon' data-bind='css: responsiveDisplay.objWidth().menuIconHide, click: function(){ responsiveDisplay.verticalMenuObservable(); responsiveDisplay.menuIconObservable()}, css2: {"fa-bars" : !responsiveDisplay.oeMenuIcon(), "fa-eye-slash" : responsiveDisplay.oeMenuIcon}'></i>
+        <div id="logo_menu">
+            <a href="https://www.open-emr.org" title="OpenEMR <?php echo xla("Website"); ?>" rel="noopener" target="_blank">
+                <?php echo file_get_contents($GLOBALS['images_static_absolute'] . "/menu-logo.svg"); ?></a>
+            <div>
+                <i class="fa fa-2x fa-bars oe-hidden" aria-hidden="true" id='menu_icon' data-bind='css: responsiveDisplay.objWidth().menuIconHide, click: function(){ responsiveDisplay.verticalMenuObservable(); responsiveDisplay.menuIconObservable()}, css2: {"fa-bars" : !responsiveDisplay.oeMenuIcon(), "fa-eye-slash" : responsiveDisplay.oeMenuIcon}'></i>
+            </div>
+            <div class="clearfix" data-bind="css: {'clearfix': responsiveDisplay.winWidth() <= <?php echo attr($width); ?>}"></div>
         </div>
-        <div class="clearfix" data-bind="css: {'clearfix' : responsiveDisplay.winWidth() <= <?php echo attr($width); ?>}"></div>
-        </div>
-        <div id="menu_items" class="oe-hidden" data-bind=" css2: {'oe-hidden' : !responsiveDisplay.oeVerticalMenu() && responsiveDisplay.winWidth() <= <?php echo attr($width); ?>}">
+        <div id="menu_items" class="oe-hidden" data-bind=" css2: {'oe-hidden': !responsiveDisplay.oeVerticalMenu() && responsiveDisplay.winWidth() <= <?php echo attr($width); ?>}">
             <span id="menu_logo" data-bind="template: {name: 'menu-template', data: application_data} "></span>
             <div>
-            <span id="userData" data-bind="template: {name: 'user-data-template', data:application_data} "></span>
-            <a href="../../logout.php" target="logoutinnerframe" id="logout_link" onclick="top.restoreSession()" data-bind="css: {'oe-hidden' :responsiveDisplay.oeLogoutIcon}" title="<?php echo xla("Logout");?>"><i class="fa fa-2x fa-sign-out oe-pull-toward" aria-hidden="true" id="logout_icon"></i></a>
+                <span id="userData" data-bind="template: {name: 'user-data-template', data:application_data} "></span>
+                <a href="../../logout.php" target="logoutinnerframe" id="logout_link" onclick="top.restoreSession()" data-bind="css: {'oe-hidden' :responsiveDisplay.oeLogoutIcon}" title="<?php echo xla("Logout"); ?>"><i class="fa fa-2x fa-sign-out oe-pull-toward" aria-hidden="true" id="logout_icon"></i></a>
             </div>
         </div>
-        <div class="clearfix" data-bind="css: {'clearfix' : responsiveDisplay.winWidth() <= <?php echo attr($width); ?>}"></div>
+        <div class="clearfix" data-bind="css: {'clearfix': responsiveDisplay.winWidth() <= <?php echo attr($width); ?>}"></div>
     </div>
-    <div id="attendantData" class="body_title acck"  data-bind="template: {name: app_view_model.attendant_template_type, data: application_data}, css: responsiveDisplay.objWidth().attendantDataWidth + ' '  + responsiveDisplay.objWidth().attendantDataClear ">
+    <div id="attendantData" class="body_title acck"  data-bind="template: {name: app_view_model.attendant_template_type, data: application_data}, css: responsiveDisplay.objWidth().attendantDataClear ">
     </div>
-
+    
     <div class="body_title" id="tabs_div" data-bind="template: {name: 'tabs-controls', data: application_data}, css: responsiveDisplay.objWidth().tabsDivWidth"> </div>
 
-    <div class="mainFrames" id="mainFrames_div" style="display: flex;" data-bind="css: responsiveDisplay.objWidth().mainFramesDivWidth  + ' ' +  responsiveDisplay.objWidth().mainFramesDivFill">
-        <div id="framesDisplay" data-bind="template: {name: 'tabs-frames', data: application_data}, css: responsiveDisplay.objWidth().framesDisplayFill"> </div>
+    <div class="mainFrames d-flex" id="mainFrames_div">
+        <div id="framesDisplay" data-bind="template: {name: 'tabs-frames', data: application_data}"> </div>
     </div>
 </div>
 <script>
@@ -394,8 +394,6 @@ displayViewModel.objWidth = ko.computed(function() {
         if(this.winWidth() <= <?php echo js_escape($width); ?>){
             currWidth = {
                mainBoxId: "mainBox_vertical",
-               mainFramesDivFill: "oe-fill",
-               framesDisplayFill: "oe-fill",
                menuItemsHide: "oe-hidden",
                menuIconHide: "",
                menuHideHide: "oe-hidden"
@@ -408,18 +406,15 @@ displayViewModel.objWidth = ko.computed(function() {
                 currWidth.bodyMain = "body_main";
             }
             if(this.oeVerticalMenu()){
-                if(this.winWidth() > 1440){
+                if(this.winWidth() > 1440) {
                     currWidth.tabsDivWidth = "col-sm-11";
-                    currWidth.mainFramesDivWidth = "col-sm-11";
                     currWidth.bodyTopDivWidth = "col-sm-1";
                 } else {
                     currWidth.tabsDivWidth = "col-sm-10";
-                    currWidth.mainFramesDivWidth = "col-sm-10";
                     currWidth.bodyTopDivWidth = "col-sm-2";
                 }
             } else {
                currWidth.tabsDivWidth = "col-sm-12";
-               currWidth.mainFramesDivWidth = "col-sm-12";
             }
             if (this.winWidth() <= 767){
                 currWidth.attendantDataClear = "clearfix";
@@ -437,9 +432,6 @@ displayViewModel.objWidth = ko.computed(function() {
                mainBoxId: "mainBox",
                bodyTopDivWidth : "",
                tabsDivWidth: "",
-               mainFramesDivWidth: "",
-               mainFramesDivFill: "",
-               framesDisplayFill: "",
                menuItemsHide: "",
                menuIconHide: "oe-hidden",
                menuHideHide: "oe-hidden",

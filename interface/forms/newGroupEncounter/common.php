@@ -17,6 +17,8 @@ require_once("$srcdir/api.inc");
 require_once("$srcdir/group.inc");
 require_once("$srcdir/classes/POSRef.class.php");
 
+use OpenEMR\Common\Acl\AclExtended;
+use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Core\Header;
 use OpenEMR\Services\FacilityService;
@@ -33,7 +35,7 @@ if ($viewmode) {
     $id = (isset($_REQUEST['id'])) ? $_REQUEST['id'] : '';
     $result = sqlQuery("SELECT * FROM form_groups_encounter WHERE id = ?", array($id));
     $encounter = $result['encounter'];
-    if ($result['sensitivity'] && !acl_check('sensitivities', $result['sensitivity'])) {
+    if ($result['sensitivity'] && !AclMain::aclCheckCore('sensitivities', $result['sensitivity'])) {
         echo "<body>\n<html>\n";
         echo "<p>" . xlt('You are not authorized to see this encounter.') . "</p>\n";
         echo "</body>\n</html>\n";
@@ -159,7 +161,7 @@ $help_icon = '';
 <body class="body_top" <?php echo $body_javascript;?>>
 <div class="container">
     <div class="row">
-        <div class="col-xs-12">
+        <div class="col-12">
             <!-- Required for the popup date selectors -->
             <div id="overDiv" style="position:absolute; visibility:hidden; z-index:1000;"></div>
             <div class="">
@@ -170,7 +172,7 @@ $help_icon = '';
         </div>
     </div>
     <div class="row">
-        <div class="col-xs-12">
+        <div class="col-12">
             <form id="new-encounter-form" method='post' action="<?php echo $rootdir ?>/forms/newGroupEncounter/save.php" name='new_encounter'>
                 <?php if ($viewmode) { ?>
                     <input type=hidden name='mode' value='update'>
@@ -213,7 +215,7 @@ $help_icon = '';
                                 </select>
                             </div>
                             <?php
-                            $sensitivities = acl_get_sensitivities();
+                            $sensitivities = AclExtended::aclGetSensitivities();
                             if ($sensitivities && count($sensitivities)) {
                                 usort($sensitivities, "sensitivity_compare");
                                 ?>
@@ -223,7 +225,7 @@ $help_icon = '';
                                     <?php
                                     foreach ($sensitivities as $value) {
                                         // Omit sensitivities to which this user does not have access.
-                                        if (acl_check('sensitivities', $value[1])) {
+                                        if (AclMain::aclCheckCore('sensitivities', $value[1])) {
                                             echo "       <option value='" . attr($value[1]) . "'";
                                             if ($viewmode && $result['sensitivity'] == $value[1]) {
                                                 echo " selected";
@@ -352,14 +354,14 @@ $help_icon = '';
                 <fieldset>
                     <legend><?php echo xlt('Reason for Visit')?></legend>
                     <div class="form-group">
-                        <div class="col-sm-10 col-sm-offset-1">
+                        <div class="col-sm-10 offset-sm-1">
                             <textarea name="reason" id="reason" class="form-control" cols="80" rows="4" ><?php echo $viewmode ? text($result['reason']) : text($GLOBALS['default_chief_complaint']); ?></textarea>
                         </div>
                     </div>
                 </fieldset>
                 <div class="form-group clearfix">
                     <div class="col-sm-12 text-left position-override">
-                        <button type="button" class="btn btn-default btn-save" onclick="top.restoreSession(); saveClicked(undefined);"><?php echo xlt('Save');?></button>
+                        <button type="button" class="btn btn-secondary btn-save" onclick="top.restoreSession(); saveClicked(undefined);"><?php echo xlt('Save');?></button>
                         <?php if ($viewmode || empty($_GET["autoloaded"])) { // not creating new encounter ?>
                             <button type="button" class="btn btn-link btn-cancel btn-separate-left" onClick="return cancelClickedOld()"><?php echo xlt('Cancel');?></button>
                         <?php } else { // not $viewmode ?>

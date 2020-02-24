@@ -36,11 +36,11 @@ if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
         <small><?php echo xlt('Email Notification Report'); ?></small>
     </h1>
 </header>
-<main class="row">
+<main class="row mx-4">
     <ul class="col-md-12">
         <?php
         $email_sender = $_POST['email_sender'];
-        $sent_by = $_SESSION["authId"];
+        $sent_by = $_SESSION['authUserID'];
 
         while ($row = sqlFetchArray($res)) {
             // prepare text for ***NAME*** tag

@@ -13,11 +13,12 @@
 
 
 require_once("../globals.php");
-require_once("$srcdir/acl.inc");
 require_once("drugs.inc.php");
 require_once("$srcdir/options.inc.php");
 
+use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Core\Header;
 
 function checkWarehouseUsed($warehouse_id)
 {
@@ -96,7 +97,7 @@ $info_msg = "";
 
 $form_trans_type = isset($_POST['form_trans_type']) ? $_POST['form_trans_type'] : '0';
 
-if (!acl_check('admin', 'drugs')) {
+if (!AclMain::aclCheckCore('admin', 'drugs')) {
     die(xlt('Not authorized'));
 }
 
@@ -108,17 +109,12 @@ if (!$drug_id) {
 <head>
 <title><?php echo $lot_id ? xlt("Edit") : xlt("Add New");
 echo " " . xlt('Lot'); ?></title>
-<link rel="stylesheet" href='<?php echo $css_header ?>' type='text/css'>
-<link rel="stylesheet" href="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-datetimepicker/build/jquery.datetimepicker.min.css">
+
+<?php Header::setupHeader(['datetime-picker', 'opener']); ?>
 
 <style>
 td { font-size:10pt; }
 </style>
-
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery/dist/jquery.min.js"></script>
-<script type="text/javascript" src="<?php echo $GLOBALS['assets_static_relative']; ?>/jquery-datetimepicker/build/jquery.datetimepicker.full.min.js"></script>
-<script type="text/javascript" src="<?php echo $webroot ?>/interface/main/tabs/js/include_opener.js?v=<?php echo $v_js_includes; ?>"></script>
-<script type="text/javascript" src="../../library/textformat.js?v=<?php echo $v_js_includes; ?>"></script>
 
 <script language="JavaScript">
 

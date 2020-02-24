@@ -11,9 +11,9 @@
  */
 namespace Ccr\Controller;
 
-use Zend\Mvc\Controller\AbstractActionController;
-use Zend\View\Model\ViewModel;
-use Zend\View\Model\JsonModel;
+use Laminas\Mvc\Controller\AbstractActionController;
+use Laminas\View\Model\ViewModel;
+use Laminas\View\Model\JsonModel;
 use Application\Listener\Listener;
 use Documents\Controller\DocumentsController;
 use Ccr\Model\CcrTable;
@@ -48,7 +48,7 @@ class CcrController extends AbstractActionController
         $time_start     = date('Y-m-d H:i:s');
         $docid          = $this->documentsController->uploadAction($request);
         $uploaded_documents     = array();
-        $uploaded_documents     = $this->getCcrTable()->fetch_uploaded_documents(array('user' => $_SESSION['authId'], 'time_start' => $time_start, 'time_end' => date('Y-m-d H:i:s')));
+        $uploaded_documents     = $this->getCcrTable()->fetch_uploaded_documents(array('user' => $_SESSION['authUserID'], 'time_start' => $time_start, 'time_end' => date('Y-m-d H:i:s')));
 
         if ($uploaded_documents[0]['id'] > 0) {
             $_REQUEST["document_id"]    = $uploaded_documents[0]['id'];

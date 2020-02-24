@@ -21,8 +21,9 @@
 * @author    Jerry Padgett <sjpadgett@gmail.com>
 */
 
-require_once($GLOBALS["srcdir"] . "/acl.inc");
 require_once($GLOBALS["srcdir"] . "/options.inc.php");
+
+use OpenEMR\Common\Acl\AclMain;
 
 function getListItem($listid, $value)
 {
@@ -317,7 +318,7 @@ function generate_order_report($orderid, $input_form = false, $genstyles = true,
     global $aNotes;
 
 // Check authorization.
-    $thisauth = acl_check('patients', 'med');
+    $thisauth = AclMain::aclCheckCore('patients', 'med');
     if (!$thisauth) {
         return xl('Not authorized');
     }
@@ -434,7 +435,7 @@ function generate_order_report($orderid, $input_form = false, $genstyles = true,
 
     <?php if (empty($GLOBALS['PATIENT_REPORT_ACTIVE'])) { ?>
 <script language="JavaScript">
-    let mypcc = '<?php echo $GLOBALS['phone_country_code'] ?>';
+    var mypcc = '<?php echo $GLOBALS['phone_country_code'] ?>';
     if (typeof top.webroot_url === "undefined") {
         if (typeof opener.top.webroot_url !== "undefined") {
             top.webroot_url = opener.top.webroot_url;

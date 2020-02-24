@@ -28,14 +28,15 @@
 
 
 require_once("../../interface/globals.php");
-require_once("$srcdir/acl.inc");
+
+use OpenEMR\Common\Acl\AclMain;
 
 // Ensure script doesn't time out and has enough memory
 set_time_limit(0);
 ini_set('memory_limit', '150M');
 
 // Control access
-if (!acl_check('admin', 'super')) {
+if (!AclMain::aclCheckCore('admin', 'super')) {
     echo xlt('Not Authorized');
     exit;
 }
@@ -229,7 +230,7 @@ if (is_dir($mainPATH)) {
                     $supported_file = 1;
                 }
             } else if ($db == 'CQM_VALUESET') {
-                if (preg_match("/ep_ec_only_cms_([0-9]{8}).xml.zip/", $file, $matches)) {
+                if (preg_match("/ep_.*_cms_([0-9]{8}).xml.zip/", $file, $matches)) {
                      $version = "Standard";
                          $date_release = substr($matches[1], 0, 4)."-".substr($matches[1], 4, -2)."-".substr($matches[1], 6);
                          $temp_date = array('date'=>$date_release, 'version'=>$version, 'path'=>$mainPATH."/".$matches[0]);
@@ -243,7 +244,7 @@ if (is_dir($mainPATH)) {
                 <?php
             } else {
                 ?>
-                <div class="error_msg"><?php echo xlt("UNSUPPORTED database load file"); ?>: <BR><?php echo text(basename($file)) ?><span class="msg" id="<?php echo attr($db); ?>_unsupportedmsg">!</span></div>
+                <div class="error_msg"><?php echo xlt("UNSUPPORTED database load file"); ?>: <br /><?php echo text(basename($file)) ?><span class="msg" id="<?php echo attr($db); ?>_unsupportedmsg">!</span></div>
                 <?php
             }
         }
@@ -430,7 +431,7 @@ if ($supported_file === 1) {
                 $rf = "rf2";
             }
             ?>
-            <input id="<?php echo attr($db); ?>_install_button" version="<?php echo attr($file_revision); ?>" rf="<?php echo $rf; ?>" file_revision_date="<?php echo attr($file_revision_date); ?>" file_checksum="<?php echo attr($file_checksum); ?>" type="button" value="<?php echo attr($action); ?>"/>
+            <input id="<?php echo attr($db); ?>_install_button" class="btn btn-secondary btn-sm" version="<?php echo attr($file_revision); ?>" rf="<?php echo $rf; ?>" file_revision_date="<?php echo attr($file_revision_date); ?>" file_checksum="<?php echo attr($file_checksum); ?>" type="button" value="<?php echo attr($action); ?>"/>
       </div>
             <?php
         }

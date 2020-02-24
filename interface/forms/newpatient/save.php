@@ -12,11 +12,11 @@
  */
 
 
-require_once("../../globals.php");
+require_once(__DIR__ . "/../../globals.php");
 require_once("$srcdir/forms.inc");
 require_once("$srcdir/encounter.inc");
-require_once("$srcdir/acl.inc");
 
+use OpenEMR\Common\Acl\AclMain;
 use OpenEMR\Common\Csrf\CsrfUtils;
 use OpenEMR\Services\FacilityService;
 
@@ -35,7 +35,10 @@ $billing_facility = (isset($_POST['billing_facility']))     ? $_POST['billing_fa
 $reason           = (isset($_POST['reason']))               ? $_POST['reason'] : '';
 $mode             = (isset($_POST['mode']))                 ? $_POST['mode'] : '';
 $referral_source  = (isset($_POST['form_referral_source'])) ? $_POST['form_referral_source'] : '';
-$pos_code         = (isset($_POST['pos_code']))              ? $_POST['pos_code'] : '';
+$pos_code         = (isset($_POST['pos_code']))             ? $_POST['pos_code'] : '';
+$parent_enc_id    = (isset($_POST['parent_enc_id']))        ? $_POST['parent_enc_id'] : null;
+
+
 //save therapy group if exist in external_id column
 $external_id         = isset($_POST['form_gid']) ? $_POST['form_gid'] : '';
 
@@ -67,7 +70,8 @@ if ($mode == 'new') {
                 encounter = ?,
                 pos_code = ?,
                 external_id = ?,
-                provider_id = ?",
+                provider_id = ?,
+                parent_encounter_id = ?",
             [
                 $date,
                 $onset_date,
@@ -82,7 +86,8 @@ if ($mode == 'new') {
                 $encounter,
                 $pos_code,
                 $external_id,
-                $provider_id
+                $provider_id,
+                $parent_enc_id
             ]
         ),
         "newpatient",
@@ -93,7 +98,7 @@ if ($mode == 'new') {
 } else if ($mode == 'update') {
     $id = $_POST["id"];
     $result = sqlQuery("SELECT encounter, sensitivity FROM form_encounter WHERE id = ?", array($id));
-    if ($result['sensitivity'] && !acl_check('sensitivities', $result['sensitivity'])) {
+    if ($result['sensitivity'] && !AclMain::aclCheckCore('sensitivities', $result['sensitivity'])) {
         die(xlt("You are not authorized to see this encounter."));
     }
 
@@ -101,7 +106,7 @@ if ($mode == 'new') {
     // See view.php to allow or disallow updates of the encounter date.
     $datepart = "";
     $sqlBindArray = array();
-    if (acl_check('encounters', 'date_a')) {
+    if (AclMain::aclCheckCore('encounters', 'date_a')) {
         $datepart = "date = ?, ";
         $sqlBindArray[] = $date;
     }

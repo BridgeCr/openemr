@@ -9,11 +9,11 @@
 
 //INCLUDES, DO ANY ACTIONS, THEN GET OUR DATA
 require_once("../globals.php");
-require_once("$srcdir/acl.inc");
-require_once("$phpgacl_location/gacl_api.class.php");
 require_once("$srcdir/registry.inc");
 
+use OpenEMR\Common\Acl\AclExtended;
 use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Core\Header;
 
 if ($_GET['method'] == "enable") {
     if (!CsrfUtils::verifyCsrfToken($_GET["csrf_token_form"])) {
@@ -48,11 +48,11 @@ $bigdata = getRegistered("%") or $bigdata = false;
 ?>
 <html>
 <head>
-<link rel="stylesheet" href="<?php echo $css_header;?>" type="text/css">
+<?php Header::setupHeader(); ?>
 </head>
 <body class="body_top">
 <span class="title"><?php echo xlt('Forms Administration');?></span>
-<br><br>
+<br /><br />
 <?php
 if (!empty($_POST)) {
     if (!CsrfUtils::verifyCsrfToken($_POST["csrf_token_form"])) {
@@ -75,16 +75,16 @@ if (!empty($_POST)) {
 
 <?php //ERROR REPORTING
 if ($err) {
-    echo "<span class=bold>" . text($err) . "</span><br><br>\n";
+    echo "<span class=bold>" . text($err) . "</span><br /><br />\n";
 }
 ?>
 
 <?php //REGISTERED SECTION ?>
-<span class=bold><?php echo xlt('Registered');?></span><br>
+<span class=bold><?php echo xlt('Registered');?></span><br />
 <form method=POST action ='./forms_admin.php'>
 <i><?php echo xlt('click here to update priority, category, nickname and access control settings'); ?></i>
 <input type="hidden" name="csrf_token_form" value="<?php echo attr(CsrfUtils::collectCsrfToken()); ?>" />
-<input type='submit' name='update' value='<?php echo xla('update'); ?>'><br>
+<input type='submit' name='update' value='<?php echo xla('update'); ?>'><br />
 <table border=0 cellpadding=1 cellspacing=2 width="500">
     <tr>
         <td> </td>
@@ -147,7 +147,7 @@ if ($bigdata != false) {
           echo "<td>";
           echo "<select name='aco_spec_" . attr($registry['id']) . "'>";
           echo "<option value=''></option>";
-          echo gen_aco_html_options($priority_category['aco_spec']);
+          echo AclExtended::genAcoHtmlOptions($priority_category['aco_spec']);
           echo "</select>";
           echo "</td>";
         ?>
@@ -165,7 +165,7 @@ if ($bigdata != false) {
 <hr>
 
 <?php  //UNREGISTERED SECTION ?>
-<span class='bold'><?php echo xlt('Unregistered'); ?></span><br>
+<span class='bold'><?php echo xlt('Unregistered'); ?></span><br />
 <table border=0 cellpadding=1 cellspacing=2 width="500">
 <?php
 $dpath = "$srcdir/../interface/forms/";

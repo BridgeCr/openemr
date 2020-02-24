@@ -310,3 +310,109 @@ INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_re
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
 ('ICD10', 'CMS', '2019-10-01', '2020-ICD-10-PCS-Order.zip', '8dc136d780ec60916e9e1fc999837bc8');
 #EndIf
+
+#IfMissingColumn patient_access_onsite portal_login_username
+ALTER TABLE `patient_access_onsite`  ADD `portal_login_username` VARCHAR(100) DEFAULT NULL COMMENT 'User entered username', ADD `portal_onetime` VARCHAR(255) DEFAULT NULL;
+UPDATE `patient_access_onsite` SET `portal_pwd_status` = '0', `portal_login_username` = `portal_username`;
+#EndIf
+
+#IfMissingColumn api_token token_auth_salt
+ALTER TABLE `api_token` ADD `token_auth_salt` varchar(255);
+#EndIf
+
+#IfMissingColumn api_token token_auth
+ALTER TABLE `api_token` ADD `token_auth` varchar(255);
+#EndIf
+
+#IfMissingColumn facility info
+ALTER TABLE `facility` ADD `info` TEXT;
+#EndIf
+
+#IfNotColumnType patient_access_onsite portal_pwd varchar(255)
+ALTER TABLE `patient_access_onsite` MODIFY `portal_pwd` varchar(255);
+#EndIf
+
+#IfColumn patient_access_onsite portal_salt
+ALTER TABLE `patient_access_onsite` DROP COLUMN `portal_salt`;
+#EndIf
+
+#IfNotColumnType patient_access_offsite portal_pwd varchar(255)
+ALTER TABLE `patient_access_offsite` MODIFY `portal_pwd` varchar(255) NOT NULL;
+#EndIf
+
+#IfColumn users pwd_expiration_date
+ALTER TABLE users DROP COLUMN `pwd_expiration_date`;
+#EndIf
+
+#IfColumn users pwd_history1
+ALTER TABLE users DROP COLUMN `pwd_history1`;
+#EndIf
+
+#IfColumn users pwd_history2
+ALTER TABLE users DROP COLUMN `pwd_history2`;
+#EndIf
+
+#IfMissingColumn users_secure last_update_password
+ALTER TABLE `users_secure` ADD `last_update_password` datetime DEFAULT NULL;
+UPDATE `users_secure` SET `last_update_password` = NOW();
+#EndIf
+
+#IfColumn users_secure salt
+ALTER TABLE `users_secure` DROP COLUMN `salt`;
+#EndIf
+
+#IfColumn users_secure salt_history1
+ALTER TABLE `users_secure` DROP COLUMN `salt_history1`;
+#EndIf
+
+#IfColumn users_secure salt_history2
+ALTER TABLE `users_secure` DROP COLUMN `salt_history2`;
+#EndIf
+
+#IfColumn api_token token_auth_salt
+ALTER TABLE `api_token` DROP COLUMN `token_auth_salt`;
+#EndIf
+
+#IfMissingColumn users_secure password_history3
+ALTER TABLE `users_secure` ADD `password_history3` varchar(255);
+#EndIf
+
+#IfMissingColumn users_secure password_history4
+ALTER TABLE `users_secure` ADD `password_history4` varchar(255);
+#EndIf
+
+UPDATE `globals` SET `gl_value`=3 WHERE `gl_name`='password_history' AND `gl_value`=1;
+
+#IfNotRow4D supported_external_dataloads load_type CQM_VALUESET load_source NIH_VSAC load_release_date 2018-09-17 load_filename ep_ec_eh_cms_20180917.xml.zip
+INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES ('CQM_VALUESET', 'NIH_VSAC', '2018-09-17','ep_ec_eh_cms_20180917.xml.zip','a1e584714b080aced6ca73b4b7b076a1');
+#EndIf
+
+#IfMissingColumn form_encounter parent_encounter_id
+ALTER TABLE `form_encounter` ADD `parent_encounter_id` BIGINT(20) NULL DEFAULT NULL;
+#EndIf
+
+#IfMissingColumn modules sql_version
+ALTER TABLE `modules` ADD `sql_version` VARCHAR(150) NOT NULL;
+#EndIf
+
+#IfMissingColumn modules acl_version
+ALTER TABLE `modules` ADD `acl_version` VARCHAR(150) NOT NULL;
+#EndIf
+
+#IfNotTable pro_assessments
+CREATE TABLE `pro_assessments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `form_oid` varchar(255) NOT NULL COMMENT 'unique id for specific instrument, pulled from assessment center API',
+  `form_name` varchar (255) NOT NULL COMMENT 'pulled from assessment center API',
+  `user_id` int(11) NOT NULL COMMENT 'ID for user that orders the form',
+  `deadline` datetime NOT NULL COMMENT 'deadline to complete the form, will be used when sending notification and reminders',
+  `patient_id` int(11) NOT NULL COMMENT 'ID for patient to order the form for',
+  `assessment_oid` varchar(255) NOT NULL COMMENT 'unique id for this specific assessment, pulled from assessment center API',
+  `status` varchar(255) NOT NULL COMMENT 'ordered or completed',
+  `score` double NOT NULL COMMENT 'T-Score for the assessment',
+  `error` double NOT NULL COMMENT 'Standard error for the score',
+  `created_at` datetime NOT NULL COMMENT 'timestamp recording the creation time of this assessment',
+  `updated_at` datetime NOT NULL COMMENT 'this field indicates the completion time when the status is completed',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1;
+#EndIf

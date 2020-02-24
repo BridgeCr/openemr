@@ -13,7 +13,7 @@
  */
 
 
-require_once("../../globals.php");
+require_once(__DIR__ . "/../../globals.php");
 require_once("$srcdir/api.inc");
 require_once("$srcdir/forms.inc");
 
@@ -59,7 +59,7 @@ if (!empty($code_text)) {
             user = ?,
             encounter = ?,
             authorized = ?, 
-            activity = '?,
+            activity = ?,
             code = ?,
             codetext = ?,
             description= ?,

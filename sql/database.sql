@@ -1586,8 +1586,8 @@ CREATE TABLE `facility` (
   `website` varchar(255) default NULL,
   `email` varchar(255) default NULL,
   `service_location` tinyint(1) NOT NULL default '1',
-  `billing_location` tinyint(1) NOT NULL default '0',
-  `accepts_assignment` tinyint(1) NOT NULL default '0',
+  `billing_location` tinyint(1) NOT NULL default '1',
+  `accepts_assignment` tinyint(1) NOT NULL default '1',
   `pos_code` tinyint(4) default NULL,
   `x12_sender_id` varchar(25) default NULL,
   `attn` varchar(65) default NULL,
@@ -1596,7 +1596,7 @@ CREATE TABLE `facility` (
   `facility_taxonomy` varchar(15) default NULL,
   `tax_id_type` VARCHAR(31) NOT NULL DEFAULT '',
   `color` VARCHAR(7) NOT NULL DEFAULT '',
-  `primary_business_entity` INT(10) NOT NULL DEFAULT '0' COMMENT '0-Not Set as business entity 1-Set as business entity',
+  `primary_business_entity` INT(10) NOT NULL DEFAULT '1' COMMENT '0-Not Set as business entity 1-Set as business entity',
   `facility_code` VARCHAR(31) default NULL,
   `extra_validation` tinyint(1) NOT NULL DEFAULT '1',
   `mail_street` varchar(30) default NULL,
@@ -1606,6 +1606,7 @@ CREATE TABLE `facility` (
   `mail_zip` varchar(10) default NULL,
   `oid` VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'HIEs CCDA and FHIR an OID is required/wanted',
   `iban` varchar(50) default NULL,
+  `info` TEXT,
   PRIMARY KEY  (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 ;
 
@@ -1613,7 +1614,7 @@ CREATE TABLE `facility` (
 -- Inserting data for table `facility`
 --
 
-INSERT INTO `facility` VALUES (3, 'Your Clinic Name Here', '000-000-0000', '000-000-0000', '', '', '', '', '', '', NULL, NULL, 1, 1, 0, NULL, '', '', '', '', '', '','#99FFFF','0', '', '1', '', '', '', '', '', '', '');
+INSERT INTO `facility` VALUES (3, 'Your Clinic Name Here', '000-000-0000', '000-000-0000', '', '', '', '', '', '', NULL, NULL, 1, 1, 0, NULL, '', '', '', '', '', '','#99FFFF','0', '', '1', '', '', '', '', '', '', '', '');
 
 -----------------------------------------------------------
 
@@ -1710,6 +1711,7 @@ CREATE TABLE `form_encounter` (
   `billing_facility` INT(11) NOT NULL DEFAULT 0,
   `external_id` VARCHAR(20) DEFAULT NULL,
   `pos_code` tinyint(4) default NULL,
+  `parent_encounter_id` BIGINT(20) NULL DEFAULT NULL,
   PRIMARY KEY  (`id`),
   KEY `pid_encounter` (`pid`, `encounter`),
   KEY `encounter_date` (`date`)
@@ -4854,6 +4856,8 @@ CREATE TABLE `modules` (
   `date` DATETIME NOT NULL,
   `sql_run` TINYINT(4) DEFAULT '0',
   `type` TINYINT(4) DEFAULT '0',
+  `sql_version` VARCHAR(150) NOT NULL,
+  `acl_version` VARCHAR(150) NOT NULL,
   PRIMARY KEY (`mod_id`,`mod_directory`)
 ) ENGINE=InnoDB;
 
@@ -5317,12 +5321,13 @@ CREATE TABLE `openemr_postcalendar_events` (
 
 DROP TABLE IF EXISTS `patient_access_onsite`;
 CREATE TABLE `patient_access_onsite`(
-  `id` INT NOT NULL AUTO_INCREMENT ,
+  `id` INT NOT NULL AUTO_INCREMENT,
   `pid` bigint(20),
-  `portal_username` VARCHAR(100) ,
-  `portal_pwd` VARCHAR(100) ,
+  `portal_username` VARCHAR(100),
+  `portal_pwd` VARCHAR(255),
   `portal_pwd_status` TINYINT DEFAULT '1' COMMENT '0=>Password Created Through Demographics by The provider or staff. Patient Should Change it at first time it.1=>Pwd updated or created by patient itself',
-  `portal_salt` VARCHAR(100) ,
+  `portal_login_username` VARCHAR(100) DEFAULT NULL COMMENT 'User entered username',
+  `portal_onetime`  VARCHAR(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
 )ENGINE=InnoDB AUTO_INCREMENT=1;
 
@@ -5511,7 +5516,7 @@ CREATE TABLE  `patient_access_offsite` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `pid` bigint(20) NOT NULL,
   `portal_username` varchar(100) NOT NULL,
-  `portal_pwd` varchar(100) NOT NULL,
+  `portal_pwd` varchar(255) NOT NULL,
   `portal_pwd_status` tinyint(4) DEFAULT '1' COMMENT '0=>Password Created Through Demographics by The provider or staff. Patient Should Change it at first time it.1=>Pwd updated or created by patient itself',
   `authorize_net_id` VARCHAR(20) COMMENT 'authorize.net profile id',
   `portal_relation` VARCHAR(100) NULL,
@@ -5723,6 +5728,29 @@ CREATE TABLE `prices` (
   `pr_price` decimal(12,2) NOT NULL default '0.00' COMMENT 'price in local currency',
   PRIMARY KEY  (`pr_id`,`pr_selector`,`pr_level`)
 ) ENGINE=InnoDB;
+
+-----------------------------------------------------------
+
+--
+-- Table structure for table `pro_assessments`
+--
+
+DROP TABLE IF EXISTS `pro_assessments`;
+CREATE TABLE `pro_assessments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `form_oid` varchar(255) NOT NULL COMMENT 'unique id for specific instrument, pulled from assessment center API',
+  `form_name` varchar (255) NOT NULL COMMENT 'pulled from assessment center API',
+  `user_id` int(11) NOT NULL COMMENT 'ID for user that orders the form',
+  `deadline` datetime NOT NULL COMMENT 'deadline to complete the form, will be used when sending notification and reminders',
+  `patient_id` int(11) NOT NULL COMMENT 'ID for patient to order the form for',
+  `assessment_oid` varchar(255) NOT NULL COMMENT 'unique id for this specific assessment, pulled from assessment center API',
+  `status` varchar(255) NOT NULL COMMENT 'ordered or completed',
+  `score` double NOT NULL COMMENT 'T-Score for the assessment',
+  `error` double NOT NULL COMMENT 'Standard error for the score',
+  `created_at` datetime NOT NULL COMMENT 'timestamp recording the creation time of this assessment',
+  `updated_at` datetime NOT NULL COMMENT 'this field indicates the completion time when the status is completed',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1;
 
 -----------------------------------------------------------
 
@@ -6606,11 +6634,13 @@ INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_re
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
 ('ICD10', 'CMS', '2018-10-01', '2019-ICD-10-PCS-Order-File.zip', 'eb545fe61ada9efad0ad97a669f8671f');
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
-('CQM_VALUESET', 'NIH_VSAC', '2017-09-29', 'ep_ec_only_cms_20170929.xml.zip','38d2e1a27646f2f09fcc389fd2335c50');
+('CQM_VALUESET', 'NIH_VSAC', '2017-09-29', 'ep_ec_only_cms_20170929.xml.zip', '38d2e1a27646f2f09fcc389fd2335c50');
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
 ('ICD10', 'CMS', '2019-10-01', '2020-ICD-10-CM-Codes.zip', '745546b3c94af3401e84003e1b143b9b');
 INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
 ('ICD10', 'CMS', '2019-10-01', '2020-ICD-10-PCS-Order.zip', '8dc136d780ec60916e9e1fc999837bc8');
+INSERT INTO `supported_external_dataloads` (`load_type`, `load_source`, `load_release_date`, `load_filename`, `load_checksum`) VALUES
+('CQM_VALUESET', 'NIH_VSAC', '2018-09-17', 'ep_ec_eh_cms_20180917.xml.zip', 'a1e584714b080aced6ca73b4b7b076a1');
 -----------------------------------------------------------
 
 --
@@ -6685,9 +6715,6 @@ CREATE TABLE `users` (
   `taxonomy` varchar(30) NOT NULL DEFAULT '207Q00000X',
   `calendar` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '1 = appears in calendar',
   `abook_type` varchar(31) NOT NULL DEFAULT '',
-  `pwd_expiration_date` date default NULL,
-  `pwd_history1` longtext,
-  `pwd_history2` longtext,
   `default_warehouse` varchar(31) NOT NULL DEFAULT '',
   `irnpool` varchar(31) NOT NULL DEFAULT '',
   `state_license_number` VARCHAR(25) DEFAULT NULL,
@@ -6718,12 +6745,12 @@ CREATE TABLE `users_secure` (
   `id` bigint(20) NOT NULL,
   `username` varchar(255) DEFAULT NULL,
   `password` varchar(255),
-  `salt` varchar(255),
+  `last_update_password` datetime DEFAULT NULL,
   `last_update` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `password_history1` varchar(255),
-  `salt_history1` varchar(255),
   `password_history2` varchar(255),
-  `salt_history2` varchar(255),
+  `password_history3` varchar(255),
+  `password_history4` varchar(255),
   `last_challenge_response` datetime DEFAULT NULL,
   `login_work_area` text,
   `login_fail_counter` INT(11) DEFAULT '0',
@@ -10557,6 +10584,7 @@ CREATE TABLE `api_token` (
     `id`           bigint(20) NOT NULL AUTO_INCREMENT,
     `user_id`      bigint(20) NOT NULL,
     `token`        varchar(256) DEFAULT NULL,
+    `token_auth` varchar(255),
     `expiry`       datetime NULL,
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB;

@@ -14,9 +14,12 @@
  * @copyright Copyright (c) 2019 Brady Miller <brady.g.miller@gmail.com>
  * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
+
+use OpenEMR\Common\Acl\AclMain;
+
 ?>
-<?php $edit = acl_check("groups", "gadd", false, 'write');?>
-<?php $view = acl_check("groups", "gadd", false, 'view');?>
+<?php $edit = AclMain::aclCheckCore("groups", "gadd", false, 'write');?>
+<?php $view = AclMain::aclCheckCore("groups", "gadd", false, 'view');?>
 
 
 <?php require 'header.php'; ?>
@@ -27,7 +30,7 @@
     <!--------- ERRORS ----------->
     <?php if ($deletion_try == 1 && $deletion_response['success'] == 0) :?>
         <div class="row">
-            <div class="col-md-6 col-md-offset-3">
+            <div class="col-md-6 offset-md-3">
                 <div class="alert alert-danger text-center">
                     <p class="failed_message"><?php echo xlt($deletion_response['message']);?></p>
                 </div>
@@ -40,7 +43,7 @@
     <button id="clear_filters" class="btn"><?php echo xlt("Clear Filters")?></button>
     <?php endif;?>
 
-    </br></br></br>
+    <br /><br /><br />
     <div id="filters">
         <div class="row">
             <div class=" form-group col-md-2">
@@ -105,7 +108,7 @@
     </div>
     <!---------- END OF FILTERS SECTION ------------->
 
-    </br></br>
+    <br /><br />
 
     <!---------- TABLE SECTION -------------->
     <div class="row">
@@ -134,7 +137,7 @@
                     <td><?php echo ($group['group_end_date'] == '0000-00-00' or $group['group_end_date'] == '00-00-0000' or empty($group['group_end_date'])) ? '' : text(oeFormatShortDate($group['group_end_date'])); ?></td>
                     <td>
                         <?php foreach ($group['counselors'] as $counselor) {
-                            echo text($counselor) . " </br> ";
+                            echo text($counselor) . " <br /> ";
                         } ;?>
                     </td>
                     <td><?php echo text($group['group_notes']);?></td>
@@ -194,13 +197,13 @@
         });
 
         /* Hide/Show filters */
-        $("#show_filters").click(function () {
+        $("#show_filters").on("click", function () {
             $('#filters').show();
             $("#hide_filters").show();
             $("#show_filters").hide();
 
         });
-        $("#hide_filters").click(function () {
+        $("#hide_filters").on("click", function () {
             $('#filters').hide();
             $("#hide_filters").hide();
             $("#show_filters").show();
@@ -215,38 +218,38 @@
 
 
         /* ---- Datetimepickers ---- */
-        $('#group_from_start_date_filter').change( function() {
+        $('#group_from_start_date_filter').on("change", function() {
             table.draw();
         } );
-        $('#group_to_start_date_filter').change( function() {
+        $('#group_to_start_date_filter').on("change", function() {
             table.draw();
         } );
 
-        $('#group_from_end_date_filter').change( function() {
+        $('#group_from_end_date_filter').on("change", function() {
             table.draw();
         } );
-        $('#group_to_end_date_filter').change( function() {
+        $('#group_to_end_date_filter').on("change", function() {
             table.draw();
         } );
 
         /* --- Text inputs --- */
-        $('#group_name_filter').keyup( function() {
+        $('#group_name_filter').on("keyup", function() {
             table.draw();
         } );
-        $('#group_id_filter').keyup( function() {
+        $('#group_id_filter').on("keyup", function() {
             table.draw();
         } );
 
         /* ---- Select Boxes ---- */
-        $('#group_type_filter').change(function () {
+        $('#group_type_filter').on("change", function () {
             table.columns( 2 ).search( this.value ).draw();
         } );
 
-        $('#group_status_filter').change( function() {
+        $('#group_status_filter').on("change", function() {
             table.draw();
         } );
 
-        $('#counselors_filter').change( function() {
+        $('#counselors_filter').on("change", function() {
             table.columns( 6 ).search( this.value ).draw();
         } );
 
@@ -254,7 +257,7 @@
 
 
         /* --------- Reset Filters ------ */
-        $('#clear_filters').click(function(){
+        $('#clear_filters').on("click", function(){
             top.restoreSession();
             location.reload();
         });
