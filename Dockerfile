@@ -1,3 +1,6 @@
+# syntax=docker/dockerfile:experimental
+# Add comment line with image name needed for CI to build the image
+#373353083651.dkr.ecr.us-east-1.amazonaws.com/openemr
 FROM alpine:3.10
 
 #Install dependencies
@@ -10,14 +13,17 @@ RUN apk add --no-cache \
     php7-sodium php7-calendar \
     perl mysql-client tar curl imagemagick nodejs nodejs-npm \
     python openssl py-pip openssl-dev dcron \
-    shadow
+    shadow 
 # Needed to ensure permissions work across shared volumes with openemr, nginx, and php-fpm dockers
 RUN usermod -u 1000 apache
 # Install composer for openemr package building
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
 #clone openemr
-RUN apk add --no-cache git build-base libffi-dev python-dev \
-    && git clone https://github.com/openemr/openemr.git --branch rel-502 --depth 1 \
+
+RUN apk add --no-cache git build-base libffi-dev python-dev openssl openssh-client \
+    && mkdir /root/.ssh/ && ssh-keyscan -t rsa github.com > /root/.ssh/known_hosts 
+    
+RUN --mount=type=ssh git clone git@github.com:BridgeCr/openemr.git --branch master --depth 1 \
     && rm -rf openemr/.git \
     && cd openemr \
     && composer install \
