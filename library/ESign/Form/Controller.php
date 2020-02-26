@@ -119,7 +119,7 @@ class Form_Controller extends Abstract_Controller
                 'PersonEmail' => $patientData['email'],
             ];
 
-            $result = sqlStatement("SELECT title, diagnosis, type FROM lists WHERE id IN (". implode(",", $encounterList). ")");
+            $result = sqlStatement("SELECT title, diagnosis, type, reaction FROM lists WHERE id IN (". implode(",", $encounterList). ")");
 
             $issueList = [];
 
@@ -141,12 +141,15 @@ class Form_Controller extends Abstract_Controller
 
             $mulesoftPayload['allergies'] = array_map(function(array $allergy) {
                 return [
-                    'HealthCloudGA__Reaction255__c' => $allergy['title']
+                    'HealthCloudGA__Reaction__c' => $allergy['reaction'],
+                    'HealthCloudGA__Reaction255__c' => $allergy['title'],
+                    'HealthCloudGA__CriticalityLabel__c' => $allergy['severity_al']
                 ];
             }, $allergies);
             $mulesoftPayload['problems'] = array_map(function(array $problem) {
                 return [
-                    'HealthCloudGA__Notes__c' => $problem['title'],
+                    'HealthCloudGA__Notes__c' => $problem['comments'],
+                    'HealthCloudGA__CodeLabel__c' => $problem['title'],
                     'HealthCloudGA__Code__c' => $problem['diagnosis']
                 ];
             }, $medicalProblems);
