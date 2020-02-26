@@ -147,7 +147,7 @@ class Form_Controller extends Abstract_Controller
             }, $medications);
 
             $jsonPostString = json_encode($mulesoftPayload);
-            $ch = curl_init('https://patient-meds-allergies-condinhc-ssnw.us-e2.cloudhub.io/patient/create');
+            $ch = curl_init('https://makanahealthpatienttohealthcloud-wegf.us-e2.cloudhub.io/patient/create');
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
             curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonPostString);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
