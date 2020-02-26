@@ -156,7 +156,9 @@ class Form_Controller extends Abstract_Controller
             $mulesoftPayload['medications'] = array_map(function(array $medication) {
                 return [
                     'HealthCloudGA__MedicationName__c' => $medication['title'],
-                    'HealthCloudGA__Code__c' => $medication['diagnosis']
+                    'HealthCloudGA__Code__c' => $medication['diagnosis'],
+                    'HealthCloudGA__MedicationCodeSystem__c' => 'RXNORM',
+                    'HealthCloudGA__MedicationKindCode__c' => $medication['diagnosis']
                 ];
             }, $medications);
 
