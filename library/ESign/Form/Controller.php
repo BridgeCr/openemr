@@ -119,7 +119,7 @@ class Form_Controller extends Abstract_Controller
                 'PersonEmail' => $patientData['email'],
             ];
 
-            $result = sqlStatement("SELECT title, diagnosis, type, reaction FROM lists WHERE id IN (". implode(",", $encounterList). ")");
+            $result = sqlStatement("SELECT title, diagnosis, type, reaction, comments FROM lists WHERE id IN (". implode(",", $encounterList). ")");
 
             $issueList = [];
 
