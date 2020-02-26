@@ -23,7 +23,7 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin -
 RUN apk add --no-cache git build-base libffi-dev python-dev openssl openssh-client \
     && mkdir /root/.ssh/ && ssh-keyscan -t rsa github.com > /root/.ssh/known_hosts 
     
-RUN --mount=type=ssh git clone git@github.com:BridgeCr/openemr.git --branch master --depth 1 \
+RUN --mount=type=ssh git clone git@github.com:BridgeCr/openemr.git --branch 5.0.2 --depth 1 \
     && rm -rf openemr/.git \
     && cd openemr \
     && composer install \
