@@ -139,31 +139,33 @@ class Form_Controller extends Abstract_Controller
                 return $issue['type'] === 'medical_problem';
             });
 
-            $mulesoftPayload['allergies'] = array_map(function(array $allergy) {
-                return [
+	        foreach ($allergies as $allergy) {
+                $mulesoftPayload['allergies'][] = [
                     'HealthCloudGA__Reaction__c' => $allergy['reaction'],
-                    'HealthCloudGA__Reaction255__c' => $allergy['title'],
+                    'HealthCloudGA__Substance255__c' => $allergy['title'],
                     'HealthCloudGA__CriticalityLabel__c' => $allergy['severity_al']
                 ];
-            }, $allergies);
-            $mulesoftPayload['problems'] = array_map(function(array $problem) {
-                return [
+            }
+
+            foreach ($medicalProblems as $problem) {
+                $mulesoftPayload['problems'][] = [
                     'HealthCloudGA__Notes__c' => $problem['comments'],
                     'HealthCloudGA__CodeLabel__c' => $problem['title'],
                     'HealthCloudGA__Code__c' => $problem['diagnosis']
                 ];
-            }, $medicalProblems);
-            $mulesoftPayload['medications'] = array_map(function(array $medication) {
-                return [
+            }
+
+            foreach ($medications as $medication) {
+                $mulesoftPayload['medications'][] = [
                     'HealthCloudGA__MedicationName__c' => $medication['title'],
                     'HealthCloudGA__Code__c' => $medication['diagnosis'],
                     'HealthCloudGA__MedicationCodeSystem__c' => 'RXNORM',
                     'HealthCloudGA__MedicationKindCode__c' => $medication['diagnosis']
                 ];
-            }, $medications);
+	    }
 
             $jsonPostString = json_encode($mulesoftPayload);
-            $ch = curl_init('https://makanahealthpatienttohealthcloud-wegf.us-e2.cloudhub.io/patient/create');
+            $ch = curl_init('http://patient-meds-allergies-condinhc-jdpp.us-e2.cloudhub.io/patient/create');
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
             curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonPostString);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
