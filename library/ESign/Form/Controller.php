@@ -106,7 +106,7 @@ class Form_Controller extends Abstract_Controller
                 $patientId = $encRow['pid'];
             }
 
-            $result = sqlStatement("SELECT fname, lname, DOB, email, phone_home, phone_cell FROM patient_data WHERE pid = $patientId");
+            $result = sqlStatement("SELECT fname, lname, DOB, email, phone_home, phone_cell, sex FROM patient_data WHERE pid = $patientId");
 
             $patientData = sqlFetchArray($result);
 
@@ -117,6 +117,7 @@ class Form_Controller extends Abstract_Controller
                 'FirstName' => $patientData['fname'],
                 'D_Phone__c' => $patientData['phone_cell'],
                 'PersonEmail' => $patientData['email'],
+                'Gender__c' => $patientData['sex']
             ];
 
             $result = sqlStatement("SELECT title, diagnosis, type, reaction, comments, severity_al FROM lists WHERE id IN (". implode(",", $encounterList). ")");
