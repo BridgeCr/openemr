@@ -166,7 +166,7 @@ class Form_Controller extends Abstract_Controller
 	    }
 
             $jsonPostString = json_encode($mulesoftPayload);
-            $ch = curl_init('http://patient-meds-allergies-condinhc-jdpp.us-e2.cloudhub.io/patient/create');
+            $ch = curl_init('http://makanahealth-ehrpatient-tohealthcloud-lhak.us-e2.cloudhub.io/patient/create');
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
             curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonPostString);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
