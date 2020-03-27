@@ -99,12 +99,9 @@ class Form_Controller extends Abstract_Controller
         if ($valid) {
             $mulesoftPayload = [];
 
-            $result = sqlStatement("SELECT pid, list_id FROM issue_encounter WHERE encounter = $encounterId");
+            $result = sqlStatement("SELECT pid FROM forms WHERE encounter = $encounterId LIMIT 1");
 
-            while ($encRow = sqlFetchArray($result)) {
-                $encounterList[] = $encRow['list_id'];
-                $patientId = $encRow['pid'];
-            }
+            $patientId = sqlFetchArray($result)['pid'];
 
             $result = sqlStatement("SELECT fname, lname, DOB, email, phone_home, phone_cell, sex FROM patient_data WHERE pid = $patientId");
 
@@ -120,52 +117,61 @@ class Form_Controller extends Abstract_Controller
                 'Gender__c' => $patientData['sex']
             ];
 
-            $result = sqlStatement("SELECT title, diagnosis, type, reaction, comments, severity_al FROM lists WHERE id IN (". implode(",", $encounterList). ")");
-
-            $issueList = [];
+            $result = sqlStatement("SELECT pid, list_id FROM issue_encounter WHERE encounter = $encounterId");
 
             while ($encRow = sqlFetchArray($result)) {
-                $issueList[] = $encRow;
-            }
-            // build $mulesoftPayload for each type
-            $allergies = array_filter($issueList, function(array $issue) {
-                return $issue['type'] === 'allergy';
-            });
-
-            $medications = array_filter($issueList, function(array $issue) {
-                return $issue['type'] === 'medication';
-            });
-
-            $medicalProblems = array_filter($issueList, function(array $issue) {
-                return $issue['type'] === 'medical_problem';
-            });
-
-	        foreach ($allergies as $allergy) {
-                $mulesoftPayload['allergies'][] = [
-                    'HealthCloudGA__Reaction__c' => $allergy['reaction'],
-                    'HealthCloudGA__Substance255__c' => $allergy['title'],
-                    'HealthCloudGA__CriticalityLabel__c' => $allergy['severity_al']
-                ];
+                $encounterList[] = $encRow['list_id'];
             }
 
-            foreach ($medicalProblems as $problem) {
-                $mulesoftPayload['problems'][] = [
-                    'HealthCloudGA__Notes__c' => $problem['comments'],
-                    'HealthCloudGA__CodeLabel__c' => $problem['title'],
-                    'HealthCloudGA__Code__c' => $problem['diagnosis']
-                ];
-            }
+            if (isset($encounterList)) {
+                $result = sqlStatement("SELECT title, diagnosis, type, reaction, comments, severity_al FROM lists WHERE id IN (". implode(",", $encounterList). ")");
 
-            foreach ($medications as $medication) {
-                $mulesoftPayload['medications'][] = [
-                    'HealthCloudGA__MedicationName__c' => $medication['title'],
-                    'HealthCloudGA__Code__c' => $medication['diagnosis'],
-                    'HealthCloudGA__MedicationCodeSystem__c' => 'RXNORM',
-                    'HealthCloudGA__MedicationKindCode__c' => $medication['diagnosis']
-                ];
-	    }
+                $issueList = [];
+
+                while ($encRow = sqlFetchArray($result)) {
+                    $issueList[] = $encRow;
+                }
+                // build $mulesoftPayload for each type
+                $allergies = array_filter($issueList, function(array $issue) {
+                    return $issue['type'] === 'allergy';
+                });
+
+                $medications = array_filter($issueList, function(array $issue) {
+                    return $issue['type'] === 'medication';
+                });
+
+                $medicalProblems = array_filter($issueList, function(array $issue) {
+                    return $issue['type'] === 'medical_problem';
+                });
+
+                foreach ($allergies as $allergy) {
+                    $mulesoftPayload['allergies'][] = [
+                        'HealthCloudGA__Reaction__c' => $allergy['reaction'],
+                        'HealthCloudGA__Substance255__c' => $allergy['title'],
+                        'HealthCloudGA__CriticalityLabel__c' => $allergy['severity_al']
+                    ];
+                }
+
+                foreach ($medicalProblems as $problem) {
+                    $mulesoftPayload['problems'][] = [
+                        'HealthCloudGA__Notes__c' => $problem['comments'],
+                        'HealthCloudGA__CodeLabel__c' => $problem['title'],
+                        'HealthCloudGA__Code__c' => $problem['diagnosis']
+                    ];
+                }
+
+                foreach ($medications as $medication) {
+                    $mulesoftPayload['medications'][] = [
+                        'HealthCloudGA__MedicationName__c' => $medication['title'],
+                        'HealthCloudGA__MedicationCode__c' => $medication['diagnosis'],
+                        'HealthCloudGA__MedicationCodeSystem__c' => 'RXNORM',
+                        'HealthCloudGA__MedicationKindCode__c' => $medication['diagnosis']
+                    ];
+                }
+            }
 
             $jsonPostString = json_encode($mulesoftPayload);
+
             $ch = curl_init('http://makanahealth-ehrpatient-tohealthcloud-lhak.us-e2.cloudhub.io/patient/create');
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
             curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonPostString);
